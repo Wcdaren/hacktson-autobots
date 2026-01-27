@@ -17,7 +17,9 @@ export const retrieveCart = withAuthHeaders(async (request, authHeaders) => {
   return await sdk.store.cart
     .retrieve(cartId, {}, authHeaders)
     .then(({ cart }) => cart)
-    .catch(() => {
+    .catch((error) => {
+      // Log the error for debugging
+      console.log(`Failed to retrieve cart ${cartId}:`, error?.message || 'Unknown error');
       return null;
     });
 });
@@ -74,19 +76,29 @@ export const addToCart = withAuthHeaders(
     const cartId = await getCartId(request.headers);
 
     if (cartId) {
-      return await sdk.store.cart.createLineItem(
-        cartId,
-        {
-          variant_id: variantId,
-          quantity,
-        },
-        {},
-        authHeaders,
-      );
+      try {
+        return await sdk.store.cart.createLineItem(
+          cartId,
+          {
+            variant_id: variantId,
+            quantity,
+          },
+          {},
+          authHeaders,
+        );
+      } catch (error: any) {
+        // If cart not found (404), create a new cart
+        if (error?.status === 404 || error?.message?.includes('not found')) {
+          console.log(`Cart ${cartId} not found, creating new cart...`);
+          // Fall through to create new cart
+        } else {
+          throw error;
+        }
+      }
     }
 
+    // Create new cart with the item
     const region = await getSelectedRegion(request.headers);
-
     const cart = await createCart(request, { region_id: region.id, items: [{ variant_id: variantId, quantity }] });
 
     return cart;
@@ -130,7 +142,15 @@ export const updateLineItem = withAuthHeaders(
       throw new Error('Missing cart ID when updating line item');
     }
 
-    return await sdk.store.cart.updateLineItem(cartId, lineId, { quantity }, {}, authHeaders).catch(medusaError);
+    try {
+      return await sdk.store.cart.updateLineItem(cartId, lineId, { quantity }, {}, authHeaders);
+    } catch (error: any) {
+      // If cart not found, throw a specific error that can be handled by the UI
+      if (error?.status === 404 || error?.message?.includes('not found')) {
+        throw new Error('CART_NOT_FOUND');
+      }
+      throw medusaError(error);
+    }
   },
 );
 
@@ -144,7 +164,15 @@ export const deleteLineItem = withAuthHeaders(async (request, authHeaders, lineI
     throw new Error('Missing cart ID when deleting line item');
   }
 
-  return await sdk.store.cart.deleteLineItem(cartId, lineId, authHeaders).catch(medusaError);
+  try {
+    return await sdk.store.cart.deleteLineItem(cartId, lineId, authHeaders);
+  } catch (error: any) {
+    // If cart not found, throw a specific error that can be handled by the UI
+    if (error?.status === 404 || error?.message?.includes('not found')) {
+      throw new Error('CART_NOT_FOUND');
+    }
+    throw medusaError(error);
+  }
 });
 
 export async function enrichLineItems(

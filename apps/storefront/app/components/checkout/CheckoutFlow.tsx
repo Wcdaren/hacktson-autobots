@@ -13,7 +13,7 @@ export const CheckoutFlow: FC = () => {
   const isLoggedIn = !!customer?.id;
   const hasPaymentProviders = paymentProviders && paymentProviders.length > 0;
 
-  if (!cart) return;
+  if (!cart) return null;
 
   useEffect(() => {
     if (isLoggedIn) goToNextStep();

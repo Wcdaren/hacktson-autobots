@@ -13,7 +13,7 @@ export const getProductsById = ({
     .list({
       id: ids,
       region_id: regionId,
-      fields: '*variants.calculated_price,+variants.inventory_quantity',
+      fields: '*variants.calculated_price,+variants.inventory_quantity,+metadata,+variants.metadata,+variants.images',
     })
     .then(({ products }) => products);
 };
@@ -23,7 +23,7 @@ export const getProductByHandle = async (handle: string, regionId: string) => {
     .list({
       handle,
       region_id: regionId,
-      fields: '*variants.calculated_price,+variants.inventory_quantity',
+      fields: '*variants.calculated_price,+variants.inventory_quantity,+metadata,+variants.metadata,+variants.images',
     })
     .then(({ products }) => products[0]);
 };

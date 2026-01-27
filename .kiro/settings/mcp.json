@@ -1,7 +1,10 @@
 {
   "mcpServers": {
     "medusa": {
-      "url": "https://docs.medusajs.com/mcp"
+      "url": "https://docs.medusajs.com/mcp",
+      "autoApprove": [
+        "ask_medusa_question"
+      ]
     }
   }
 }

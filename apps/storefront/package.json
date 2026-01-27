@@ -12,7 +12,7 @@
   "sideEffects": false,
   "scripts": {
     "build": "react-router build",
-    "dev": "react-router dev",
+    "dev": "CHOKIDAR_USEPOLLING=1 CHOKIDAR_INTERVAL=300 react-router dev",
     "start:dev": "dotenv -e .env -- react-router-serve ./build/server/index.js",
     "start": "react-router-serve ./build/server/index.js",
     "remix-serve": "react-router-serve",

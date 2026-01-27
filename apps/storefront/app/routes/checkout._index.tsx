@@ -84,6 +84,7 @@ export const loader = async ({
 }> => {
   const cartId = await getCartId(request.headers);
 
+  // No cart ID in cookie - redirect to home or show empty state
   if (!cartId) {
     return {
       cart: null,
@@ -93,40 +94,62 @@ export const loader = async ({
     };
   }
 
-  const cart = await retrieveCart(request).catch((e) => null);
+  // Try to retrieve cart - if it fails (e.g., cart was deleted after re-seed), clear cookie and redirect
+  const cart = await retrieveCart(request).catch(() => null);
 
   if (!cart) {
-    throw redirect('/');
+    // Cart doesn't exist anymore - clear the invalid cookie and redirect
+    const headers = new Headers();
+    await removeCartId(headers);
+    throw redirect('/', { headers });
   }
 
+  // Cart was already completed - clear cookie and redirect
   if ((cart as { completed_at?: string }).completed_at) {
     const headers = new Headers();
     await removeCartId(headers);
-
-    throw redirect(`/`, { headers });
+    throw redirect('/', { headers });
   }
 
-  await ensureSelectedCartShippingMethod(request, cart);
-
-  const [shippingOptions, paymentProviders] = await Promise.all([
-    fetchShippingOptions(cartId),
-    listCartPaymentProviders(cart.region_id!) as Promise<StorePaymentProvider[]>,
-  ]);
-
-  // Only try to create payment session if we have providers
-  let activePaymentSession: BasePaymentSession | null = null;
-  if (paymentProviders.length > 0) {
-    activePaymentSession = await ensureCartPaymentSessions(request, cart);
+  // Cart has no items - redirect to home
+  if (!cart.items?.length) {
+    return {
+      cart: null,
+      shippingOptions: [],
+      paymentProviders: [],
+      activePaymentSession: null,
+    };
   }
 
-  const updatedCart = await retrieveCart(request);
+  try {
+    await ensureSelectedCartShippingMethod(request, cart);
 
-  return {
-    cart: updatedCart,
-    shippingOptions,
-    paymentProviders: paymentProviders,
-    activePaymentSession: activePaymentSession,
-  };
+    const [shippingOptions, paymentProviders] = await Promise.all([
+      fetchShippingOptions(cart.id),
+      listCartPaymentProviders(cart.region_id!) as Promise<StorePaymentProvider[]>,
+    ]);
+
+    // Only try to create payment session if we have providers
+    let activePaymentSession: BasePaymentSession | null = null;
+    if (paymentProviders.length > 0) {
+      activePaymentSession = await ensureCartPaymentSessions(request, cart);
+    }
+
+    const updatedCart = await retrieveCart(request);
+
+    return {
+      cart: updatedCart,
+      shippingOptions,
+      paymentProviders: paymentProviders,
+      activePaymentSession: activePaymentSession,
+    };
+  } catch (error) {
+    console.error('Checkout loader error:', error);
+    // If any error occurs during checkout setup, redirect to home
+    const headers = new Headers();
+    await removeCartId(headers);
+    throw redirect('/', { headers });
+  }
 };
 
 export default function CheckoutIndexRoute() {

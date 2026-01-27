@@ -5,6 +5,7 @@ import type { FC, HTMLAttributes } from 'react';
 import { ProductBadges } from './ProductBadges';
 import { ProductPrice } from './ProductPrice';
 import { ProductThumbnail } from './ProductThumbnail';
+import { SaleBadge } from '@app/components/badges/SaleBadge';
 
 export interface ProductListItemProps extends HTMLAttributes<HTMLElement> {
   product: StoreProduct;
@@ -13,11 +14,17 @@ export interface ProductListItemProps extends HTMLAttributes<HTMLElement> {
 
 export const ProductListItem: FC<ProductListItemProps> = ({ product, className, isTransitioning, ...props }) => {
   const { region } = useRegion();
+  const firstVariant = product.variants?.[0];
 
   return (
     <article className={clsx(className, 'group/product-card text-left')} {...props}>
       <div className="relative">
         <ProductBadges className="absolute right-2 top-2 z-10 flex gap-2" product={product} />
+        {firstVariant && (
+          <div className="absolute left-2 top-2 z-10">
+            <SaleBadge variant={firstVariant} />
+          </div>
+        )}
         <ProductThumbnail isTransitioning={isTransitioning} product={product} />
       </div>
 

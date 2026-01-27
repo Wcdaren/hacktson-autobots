@@ -12,8 +12,9 @@ import {
   linkSalesChannelsToApiKeyWorkflow,
   linkSalesChannelsToStockLocationWorkflow,
   updateStoresWorkflow,
+  batchVariantImagesWorkflow,
 } from '@medusajs/core-flows';
-import type { IPaymentModuleService } from '@medusajs/framework/types';
+import type { IPaymentModuleService, IProductModuleService } from '@medusajs/framework/types';
 import { ContainerRegistrationKeys, Modules } from '@medusajs/framework/utils';
 import { createCollectionsWorkflow } from '@medusajs/medusa/core-flows';
 import type {
@@ -28,6 +29,7 @@ import {
   importedCategories,
   importedTags,
   importedCollections,
+  variantImagesMap,
 } from './seed/products-from-api';
 
 export default async function seedDemoData({ container }: ExecArgs) {
@@ -90,7 +92,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
     fields: ['id', 'name', 'currency_code'],
   });
 
-  let usRegion, caRegion;
+  let usRegion: { id: string } | undefined;
+  let caRegion: { id: string } | undefined;
 
   if (existingRegions.length >= 2) {
     logger.info('Regions already exist, skipping creation...');
@@ -118,6 +121,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
     usRegion = regionResult[0];
     caRegion = regionResult[1];
   }
+
+  if (!usRegion || !caRegion) {
+    throw new Error('Failed to find or create regions');
+  }
+
   logger.info('Finished seeding regions.');
 
   logger.info('Seeding tax regions...');
@@ -418,5 +426,89 @@ export default async function seedDemoData({ container }: ExecArgs) {
   });
 
   logger.info('Finished seeding product data.');
+
+  // Associate variant images with their variants
+  logger.info('Associating variant images...');
+  const productModuleService: IProductModuleService = container.resolve(Modules.PRODUCT);
+
+  // Get all products with their images and variants
+  const [products] = await productModuleService.listAndCountProducts(
+    {},
+    {
+      relations: ['images', 'variants'],
+      take: 1000,
+    },
+  );
+
+  // Build lookup maps
+  const skuToVariant = new Map<string, { variantId: string; productId: string }>();
+  const productImageMap = new Map<string, Map<string, string>>();
+
+  for (const product of products as any[]) {
+    const imageUrlToId = new Map<string, string>();
+    for (const image of product.images || []) {
+      imageUrlToId.set(image.url, image.id);
+    }
+    productImageMap.set(product.id, imageUrlToId);
+
+    for (const variant of product.variants || []) {
+      if (variant.sku) {
+        skuToVariant.set(variant.sku, {
+          variantId: variant.id,
+          productId: product.id,
+        });
+      }
+    }
+  }
+
+  // Associate images with variants
+  let associatedCount = 0;
+  let skippedCount = 0;
+
+  for (const sku of Object.keys(variantImagesMap)) {
+    const variantInfo = skuToVariant.get(sku);
+    if (!variantInfo) {
+      skippedCount++;
+      continue;
+    }
+
+    const { variantId, productId } = variantInfo;
+    const imageUrls = variantImagesMap[sku];
+    const productImages = productImageMap.get(productId);
+
+    if (!productImages || productImages.size === 0) {
+      skippedCount++;
+      continue;
+    }
+
+    const imageIdsToAdd: string[] = [];
+    for (const url of imageUrls) {
+      const imageId = productImages.get(url);
+      if (imageId) {
+        imageIdsToAdd.push(imageId);
+      }
+    }
+
+    if (imageIdsToAdd.length === 0) {
+      skippedCount++;
+      continue;
+    }
+
+    try {
+      await batchVariantImagesWorkflow(container).run({
+        input: {
+          variant_id: variantId,
+          add: imageIdsToAdd,
+        },
+      });
+      associatedCount++;
+    } catch (error) {
+      // Silently skip errors for individual variants
+      skippedCount++;
+    }
+  }
+
+  logger.info(`Finished associating variant images: ${associatedCount} associated, ${skippedCount} skipped.`);
+
   logger.info(`PUBLISHABLE API KEY: ${publishableApiKey.token}`);
 }

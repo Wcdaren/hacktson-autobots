@@ -6,7 +6,7 @@ import type { HttpTypes } from '@medusajs/types';
 import { type LoaderFunctionArgs, data as remixData } from 'react-router';
 import { RemixLoaderResponse } from 'types/remix';
 import { config } from './config.server';
-import { getSelectedRegionId, setSelectedRegionId } from './cookies.server';
+import { getCartId, getSelectedRegionId, removeCartId, setSelectedRegionId } from './cookies.server';
 import { enrichLineItems, retrieveCart } from './data/cart.server';
 import { listCategories } from './data/categories.server';
 import { getCustomer } from './data/customer.server';
@@ -34,6 +34,13 @@ export const getRootLoader = async ({ request }: LoaderFunctionArgs) => {
 
   if (currentRegionCookieId !== region?.id) {
     await setSelectedRegionId(headers, region?.id!);
+  }
+
+  // If we had a cart ID in cookies but cart is null, clear the invalid cart cookie
+  const cartIdFromCookie = await getCartId(request.headers);
+  if (cartIdFromCookie && !cart) {
+    console.log(`Clearing invalid cart cookie: ${cartIdFromCookie}`);
+    await removeCartId(headers);
   }
 
   if (cart?.items?.length) {

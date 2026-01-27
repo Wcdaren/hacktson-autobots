@@ -4,9 +4,9 @@ import { LightboxGallery } from '@app/components/common/images/LightboxGallery';
 import { useScrollArrows } from '@app/hooks/useScrollArrows';
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react';
 import { MagnifyingGlassPlusIcon } from '@heroicons/react/24/outline';
-import { StoreProduct } from '@medusajs/types';
+import { StoreProduct, StoreProductVariant } from '@medusajs/types';
 import clsx from 'clsx';
-import { FC, memo, useState } from 'react';
+import { FC, memo, useMemo, useState } from 'react';
 
 export interface ProductGalleryImage {
   id: string;
@@ -15,14 +15,20 @@ export interface ProductGalleryImage {
   name?: string;
 }
 
+// Extended variant type to include images (available when +variants.images is requested)
+interface VariantWithImages extends StoreProductVariant {
+  images?: Array<{ id: string; url: string }>;
+}
+
 export interface ProductImageGalleryProps {
   product: StoreProduct;
+  selectedVariant?: VariantWithImages;
 }
 
 const GalleryImagesRow: FC<{ galleryImages: ProductGalleryImage[] }> = memo(({ galleryImages }) => {
   return (
     <>
-      {galleryImages.map((image, imageIndex) => (
+      {galleryImages.map((image) => (
         <Tab
           key={image.id}
           className={
@@ -54,30 +60,65 @@ const GalleryImagesRow: FC<{ galleryImages: ProductGalleryImage[] }> = memo(({ g
   );
 });
 
-export const ProductImageGallery: FC<ProductImageGalleryProps> = ({ product }) => {
+export const ProductImageGallery: FC<ProductImageGalleryProps> = ({ product, selectedVariant }) => {
   const { images: productImages = [], thumbnail } = product;
-  const images = productImages ?? [];
   const [lightboxIndex, setLightboxIndex] = useState(-1);
+
+  // Get images for the selected variant, fallback to product images
+  const gallery: ProductGalleryImage[] = useMemo(() => {
+    // Check for variant images (from Medusa's native variant-image association)
+    if (selectedVariant?.images && selectedVariant.images.length > 0) {
+      return selectedVariant.images.map((img, idx) => ({
+        id: img.id || `variant-img-${idx}`,
+        name: `${selectedVariant.title} - Image ${idx + 1}`,
+        url: img.url,
+        alt: `${selectedVariant.title} - ${product.title}`,
+      }));
+    }
+
+    // Fallback: Check variant metadata for images (legacy support)
+    const variantMetadata = selectedVariant?.metadata as Record<string, unknown> | undefined;
+    if (variantMetadata?.images && Array.isArray(variantMetadata.images) && variantMetadata.images.length > 0) {
+      return (variantMetadata.images as string[]).map((url, idx) => ({
+        id: `variant-meta-img-${idx}`,
+        name: `${selectedVariant?.title} - Image ${idx + 1}`,
+        url,
+        alt: `${selectedVariant?.title} - ${product.title}`,
+      }));
+    }
+
+    // Otherwise use product images
+    if (productImages && productImages.length > 0) {
+      return productImages.map((img, idx) => ({
+        id: img.id || `product-img-${idx}`,
+        name: `${product.title} - Image ${idx + 1}`,
+        url: img.url,
+        alt: product.description || product.title,
+      }));
+    }
+
+    // Fallback to thumbnail
+    if (thumbnail) {
+      return [
+        {
+          id: 'thumbnail',
+          name: `Thumbnail for ${product.title}`,
+          url: thumbnail,
+          alt: product.description || product.title,
+        },
+      ];
+    }
+
+    return [];
+  }, [selectedVariant, productImages, thumbnail, product.title, product.description]);
 
   const { scrollableDivRef, showStartArrow, showEndArrow, handleArrowClick } = useScrollArrows({
     buffer: 50,
-    resetOnDepChange: [product],
+    resetOnDepChange: [product, selectedVariant?.id],
   });
 
-  const gallery: ProductGalleryImage[] =
-    images?.length < 1 && thumbnail
-      ? [
-          {
-            id: 'thumbnail',
-            name: `Thumbnail for ${product.title}`,
-            url: thumbnail,
-            alt: product.description || product.title,
-          },
-        ]
-      : (images as ProductGalleryImage[]);
-
   return (
-    <TabGroup as="div" className="flex flex-col-reverse gap-4 lg:flex-row">
+    <TabGroup as="div" className="flex flex-col-reverse gap-4 lg:flex-row" key={selectedVariant?.id || 'no-variant'}>
       <h2 className="sr-only">Images</h2>
       {gallery.length > 1 && (
         <div className="flex-grow-1 relative mx-auto mb-12 block h-8 w-full lg:mb-0 lg:h-auto lg:max-w-[68px]">
@@ -107,11 +148,11 @@ export const ProductImageGallery: FC<ProductImageGalleryProps> = ({ product }) =
       <TabPanels className="flex-grow-1 w-full">
         <div className="aspect-1 relative">
           {gallery.length > 0 ? (
-            gallery.map((image, imageIndex) => (
+            gallery.map((image) => (
               <TabPanel
                 key={image.id}
                 className="group relative h-full w-full cursor-pointer overflow-hidden sm:rounded-md"
-                onClick={() => setLightboxIndex(imageIndex)}
+                onClick={() => setLightboxIndex(gallery.indexOf(image))}
               >
                 <Image
                   key={image.id}

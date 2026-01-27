@@ -2,18 +2,20 @@ import { writeFileSync } from 'fs';
 import { join } from 'path';
 
 /**
- * Sitemap-Based Product Importer
+ * Sitemap-Based Product Importer (Enhanced)
  *
  * Strategy:
  * 1. Fetch product URLs from Castlery sitemap.xml
  * 2. Extract product slugs from URLs
  * 3. Fetch detailed data from Castlery Production API
  *
- * Benefits:
- * - No dependencies on ES or sample files
- * - Always gets latest product list
- * - Uses production API for accurate data
- * - Complete option metadata with images
+ * Enhanced Features:
+ * - Variant-specific images (each variant has its own gallery)
+ * - Product properties (material, care, dimensions, comfort ratings)
+ * - Variant properties (fabric composition, etc.)
+ * - Original price (list_price) for sale display
+ * - Dimension images per variant
+ * - Option swatch images
  */
 
 interface ImportConfig {
@@ -247,6 +249,108 @@ function extractVariantOptions(variant: any, productOptions: ProductOption[]): R
 }
 
 /**
+ * Extract images from a variant
+ */
+function extractVariantImages(variant: any): string[] {
+  const images: string[] = [];
+
+  // Extract from images array (product shots)
+  if (variant.images && Array.isArray(variant.images)) {
+    variant.images.forEach((img: any) => {
+      const imageUrl = img.links?.large || img.links?.medium || img.product_url;
+      if (imageUrl && !images.includes(imageUrl)) {
+        images.push(imageUrl);
+      }
+    });
+  }
+
+  // Extract from assets array (lifestyle shots)
+  if (variant.assets && Array.isArray(variant.assets)) {
+    variant.assets.forEach((asset: any) => {
+      const imageUrl = asset.links?.large || asset.links?.medium || asset.product_url;
+      if (imageUrl && !images.includes(imageUrl)) {
+        images.push(imageUrl);
+      }
+    });
+  }
+
+  // Add dimension image if available
+  if (variant.dimension_image?.links?.large) {
+    const dimUrl = variant.dimension_image.links.large;
+    if (!images.includes(dimUrl)) {
+      images.push(dimUrl);
+    }
+  }
+
+  return images;
+}
+
+/**
+ * Product property with structured data
+ */
+interface ProductProperty {
+  name: string;
+  presentation: string;
+  value: string;
+  explanation?: string;
+}
+
+/**
+ * Extract product properties from API data
+ */
+function extractProductProperties(apiProduct: any): {
+  details: ProductProperty[];
+  dimensions: ProductProperty[];
+  deliveryReturns: ProductProperty[];
+  comfortRatings: ProductProperty[];
+} {
+  const props = apiProduct.product_properties || {};
+
+  const extractProps = (arr: any[]): ProductProperty[] => {
+    if (!arr || !Array.isArray(arr)) return [];
+    return arr
+      .filter((p: any) => p.is_public !== false)
+      .map((p: any) => ({
+        name: p.name,
+        presentation: p.presentation,
+        value: p.value,
+        explanation: p.explanation,
+      }));
+  };
+
+  return {
+    details: extractProps(props.product_details),
+    dimensions: extractProps(props.product_dimensions),
+    deliveryReturns: extractProps(props.delivery_returns),
+    comfortRatings: extractProps(props.comfort_ratings),
+  };
+}
+
+/**
+ * Extract variant-specific properties
+ */
+function extractVariantProperties(variant: any): ProductProperty[] {
+  const props = variant.variant_properties || {};
+  const allProps: ProductProperty[] = [];
+
+  ['product_details', 'product_dimensions', 'delivery_returns', 'comfort_ratings'].forEach((key) => {
+    if (props[key] && Array.isArray(props[key])) {
+      props[key].forEach((p: any) => {
+        if (p.is_public !== false) {
+          allProps.push({
+            name: p.name,
+            presentation: p.presentation,
+            value: p.value,
+          });
+        }
+      });
+    }
+  });
+
+  return allProps;
+}
+
+/**
  * Transform API product to Medusa format
  */
 function transformAPIProduct(apiProduct: any, index: number): any {
@@ -265,6 +369,7 @@ function transformAPIProduct(apiProduct: any, index: number): any {
   }
 
   const basePrice = parseFloat(apiProduct.price) || 0;
+  const listPrice = parseFloat(apiProduct.list_price) || basePrice;
 
   if (basePrice <= 0) {
     console.warn(`⚠️  Product ${apiProduct.slug} has invalid price: ${basePrice}, skipping`);
@@ -273,32 +378,13 @@ function transformAPIProduct(apiProduct: any, index: number): any {
 
   const firstVariant = apiProduct.variants[0];
 
-  // Extract images from variant (API v2 structure)
-  const images: string[] = [];
-
-  // API v2 uses 'images' array directly on variant
-  if (firstVariant.images && Array.isArray(firstVariant.images)) {
-    firstVariant.images.forEach((img: any) => {
-      // v2 API structure: img can be a string URL or object with links
-      if (typeof img === 'string') {
-        images.push(img);
-      } else if (img.links?.large) {
-        images.push(img.links.large);
-      } else if (img.product_url) {
-        images.push(img.product_url);
-      }
-    });
-  }
-
-  // Also check for assets array (if v2 has it)
-  if (firstVariant.assets && Array.isArray(firstVariant.assets)) {
-    firstVariant.assets.forEach((asset: any) => {
-      const imageUrl = asset.links?.large || asset.product_url;
-      if (imageUrl && !images.includes(imageUrl)) {
-        images.push(imageUrl);
-      }
-    });
-  }
+  // Extract ALL images from ALL variants for product-level images (deduplicated)
+  const allImagesSet = new Set<string>();
+  apiProduct.variants.forEach((variant: any) => {
+    const variantImages = extractVariantImages(variant);
+    variantImages.forEach((img: string) => allImagesSet.add(img));
+  });
+  const images = Array.from(allImagesSet);
 
   // Use first image as thumbnail
   const thumbnail = images[0] || '';
@@ -306,6 +392,7 @@ function transformAPIProduct(apiProduct: any, index: number): any {
   const categories = extractCategories(apiProduct.taxons);
   const collection = extractCollection(apiProduct.taxons);
 
+  // Extract tags from first variant (they're usually the same across variants)
   const tags: string[] = [];
   if (firstVariant.tags && Array.isArray(firstVariant.tags)) {
     firstVariant.tags.forEach((tag: string) => {
@@ -335,15 +422,67 @@ function transformAPIProduct(apiProduct: any, index: number): any {
     });
   }
 
+  // Extract product properties (material, care, dimensions, etc.)
+  const productProperties = extractProductProperties(apiProduct);
+
+  // Build metadata from product properties
+  const metadata: Record<string, any> = {};
+
+  if (productProperties.details.length > 0) {
+    metadata.material = productProperties.details.find((p) => p.name === 'material')?.value;
+    metadata.care = productProperties.details.find((p) => p.name === 'care')?.value;
+    metadata.filling = productProperties.details.find((p) => p.name === 'filling')?.value;
+    metadata.cover_type = productProperties.details.find((p) => p.name === 'cover_type')?.value;
+  }
+
+  if (productProperties.dimensions.length > 0) {
+    metadata.dimensions = productProperties.dimensions.find((p) => p.name === 'general_dimensions')?.value;
+    metadata.weight = productProperties.dimensions.find((p) => p.name === 'product_weight')?.value;
+    metadata.seating_depth = productProperties.dimensions.find((p) => p.name === 'seating_depth')?.value;
+    metadata.seating_height = productProperties.dimensions.find((p) => p.name === 'seating_height')?.value;
+  }
+
+  if (productProperties.comfortRatings.length > 0) {
+    metadata.comfort_ratings = {};
+    productProperties.comfortRatings.forEach((r) => {
+      metadata.comfort_ratings[r.name] = r.value;
+    });
+  }
+
+  if (productProperties.deliveryReturns.length > 0) {
+    metadata.warranty = productProperties.deliveryReturns.find((p) => p.name === 'warranty')?.value;
+    metadata.assembly = productProperties.deliveryReturns.find((p) => p.name === 'assembly_condition')?.value;
+  }
+
+  // Clean up undefined values from metadata
+  Object.keys(metadata).forEach((key) => {
+    if (metadata[key] === undefined) {
+      delete metadata[key];
+    }
+  });
+
+  // Transform variants with their own images
   const variants = apiProduct.variants.map((variant: any) => {
     const variantPrice = parseFloat(variant.price) || basePrice;
+    const variantListPrice = parseFloat(variant.list_price) || listPrice;
     const options = extractVariantOptions(variant, productOptions);
+
+    // Extract variant-specific properties
+    const variantProps = extractVariantProperties(variant);
+    const variantMetadata: Record<string, any> = {};
+
+    variantProps.forEach((p) => {
+      variantMetadata[p.name] = p.value;
+    });
 
     return {
       title: variant.name || `${title} - Variant`,
       sku: variant.sku || `SKU-${apiProduct.id}`,
       options,
       price: variantPrice,
+      listPrice: variantListPrice,
+      images: variantImages,
+      metadata: Object.keys(variantMetadata).length > 0 ? variantMetadata : undefined,
       manage_inventory: false,
     };
   });
@@ -362,6 +501,8 @@ function transformAPIProduct(apiProduct: any, index: number): any {
     variants,
     productOptions,
     basePrice,
+    listPrice,
+    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
   };
 }
 
@@ -410,7 +551,7 @@ function validateProductOptions(product: any): boolean {
 }
 
 /**
- * Generate TypeScript seed file (same as hybrid version)
+ * Generate TypeScript seed file (enhanced with variant images)
  */
 function generateSeedFile(
   products: any[],
@@ -440,16 +581,17 @@ function generateSeedFile(
 import { ProductStatus } from '@medusajs/utils';
 
 /**
- * Products imported from Castlery Production API
+ * Products imported from Castlery Production API (Enhanced)
  * Generated on: ${new Date().toISOString()}
  * Total products: ${products.length}
  * Source: Castlery Sitemap + Production API (https://apigw-sg-prod.castlery.com/v2)
  * 
- * Features:
- * - Hierarchical category structure
- * - Complete option metadata from API
- * - Accurate variant option values with presentation names
- * - Swatch images preserved in metadata
+ * Enhanced Features:
+ * - Variant-specific images (each variant has its own gallery)
+ * - Product metadata (material, care, dimensions, comfort ratings)
+ * - Variant metadata (fabric composition, etc.)
+ * - Original price (list_price) for sale display
+ * - Option swatch images preserved in metadata
  */
 
 export const importedCategoryHierarchy = ${JSON.stringify(categoryHierarchy, null, 2)};
@@ -463,6 +605,23 @@ export const importedCategories = ${JSON.stringify(
 export const importedTags = ${JSON.stringify(tagsArray, null, 2)};
 
 export const importedCollections = ${JSON.stringify(collectionsArray, null, 2)};
+
+/**
+ * Variant images map - stores images for each variant by SKU
+ * This can be used to update variant images after product creation
+ */
+export const variantImagesMap: Record<string, string[]> = ${JSON.stringify(
+    products.reduce((acc: Record<string, string[]>, product: any) => {
+      product.variants.forEach((v: any) => {
+        if (v.images && v.images.length > 0) {
+          acc[v.sku] = v.images;
+        }
+      });
+      return acc;
+    }, {}),
+    null,
+    2,
+  )};
 
 export const seedProductsFromAPI = ({
   collections,
@@ -525,11 +684,30 @@ ${valuesStr}
 
     const variantsStr = product.variants
       .map((variant: any) => {
+        // Build variant metadata string
+        let variantMetadataStr = '';
+        const variantMeta: Record<string, any> = {};
+
+        // Add variant-specific metadata
+        if (variant.metadata) {
+          Object.assign(variantMeta, variant.metadata);
+        }
+
+        // Add variant images to metadata for later retrieval
+        if (variant.images && variant.images.length > 0) {
+          variantMeta.images = variant.images;
+        }
+
+        if (Object.keys(variantMeta).length > 0) {
+          variantMetadataStr = `
+        metadata: ${JSON.stringify(variantMeta, null, 10)},`;
+        }
+
         return `      {
         title: ${JSON.stringify(variant.title)},
         sku: ${JSON.stringify(variant.sku)},
         options: ${JSON.stringify(variant.options, null, 10)},
-        manage_inventory: false,
+        manage_inventory: false,${variantMetadataStr}
         prices: [
           {
             amount: ${Math.round(variant.price * 100)},
@@ -545,13 +723,20 @@ ${valuesStr}
       })
       .join(',\n');
 
+    // Build product metadata string
+    let productMetadataStr = '';
+    if (product.metadata && Object.keys(product.metadata).length > 0) {
+      productMetadataStr = `
+    metadata: ${JSON.stringify(product.metadata, null, 4)},`;
+    }
+
     return `  {
     title: ${JSON.stringify(product.title)},
     description: ${JSON.stringify(product.description)},
     handle: ${JSON.stringify(product.handle)},
     status: ProductStatus.${product.status.toUpperCase()},
     thumbnail: ${JSON.stringify(product.thumbnail)},
-    shipping_profile_id,
+    shipping_profile_id,${productMetadataStr}
     ${categoryIds.length > 0 ? `category_ids: [${categoryIds.join(', ')}].filter(Boolean),` : ''}
     ${tagIds.length > 0 ? `tag_ids: [${tagIds.join(', ')}].filter(Boolean),` : ''}
     ${product.collection ? `collection_id: ${collectionId},` : ''}
@@ -658,7 +843,11 @@ async function main() {
         p.productOptions.length > 0
           ? ` (${p.productOptions.map((o: any) => `${o.title}: ${o.values.length}`).join(', ')})`
           : '';
-      console.log(`   ${idx + 1}. ${p.title} - $${p.basePrice} (${p.variants.length} variants${optionInfo})`);
+      const variantImgCount = p.variants.reduce((sum: number, v: any) => sum + (v.images?.length || 0), 0);
+      const metaInfo = p.metadata ? ` [+metadata]` : '';
+      console.log(
+        `   ${idx + 1}. ${p.title} - $${p.basePrice} (${p.variants.length} variants${optionInfo}, ${variantImgCount} variant imgs${metaInfo})`,
+      );
     });
     console.log('');
 
@@ -677,6 +866,15 @@ async function main() {
     console.log('━'.repeat(80));
     console.log(`   Products: ${transformedProducts.length}`);
     console.log(`   Variants: ${transformedProducts.reduce((sum: number, p: any) => sum + p.variants.length, 0)}`);
+    const totalVariantImages = transformedProducts.reduce(
+      (sum: number, p: any) => sum + p.variants.reduce((vSum: number, v: any) => vSum + (v.images?.length || 0), 0),
+      0,
+    );
+    console.log(`   Variant Images: ${totalVariantImages}`);
+    const productsWithMetadata = transformedProducts.filter(
+      (p: any) => p.metadata && Object.keys(p.metadata).length > 0,
+    ).length;
+    console.log(`   Products with Metadata: ${productsWithMetadata}`);
     console.log(`   Categories: ${allCategories.size} (with hierarchy)`);
     console.log(`   Collections: ${collections.size}`);
     console.log(`   Tags: ${tags.size}`);

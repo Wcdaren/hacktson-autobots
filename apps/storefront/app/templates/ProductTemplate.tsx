@@ -11,6 +11,9 @@ import { ProductOptionSelectorRadio } from '@app/components/product/ProductOptio
 import { ProductOptionSelectorSelect } from '@app/components/product/ProductOptionSelectorSelect';
 import { ProductPrice } from '@app/components/product/ProductPrice';
 import { ProductPriceRange } from '@app/components/product/ProductPriceRange';
+import { ProductDetailsTabs } from '@app/components/product/ProductDetailsTabs';
+import { ProductVariantDetails } from '@app/components/product/ProductVariantDetails';
+import { SaleBadge } from '@app/components/badges/SaleBadge';
 import { Share } from '@app/components/share';
 import { useCart } from '@app/hooks/useCart';
 import { useProductInventory } from '@app/hooks/useProductInventory';
@@ -315,7 +318,7 @@ export const ProductTemplate = ({ product }: ProductTemplateProps) => {
                   <div className="md:py-6">
                     <Grid className="!gap-0">
                       <GridColumn className="mb-8 md:col-span-6 lg:col-span-7 xl:pr-16 xl:pl-9">
-                        <ProductImageGallery key={product.id} product={product} />
+                        <ProductImageGallery key={product.id} product={product} selectedVariant={selectedVariant} />
                       </GridColumn>
 
                       <GridColumn className="flex flex-col md:col-span-6 lg:col-span-5">
@@ -346,13 +349,20 @@ export const ProductTemplate = ({ product }: ProductTemplateProps) => {
                               Product information
                             </h2>
 
-                            <p className="text-lg text-gray-900 sm:text-xl flex gap-3">
-                              {selectedVariant ? (
-                                <ProductPrice product={product} variant={selectedVariant} currencyCode={currencyCode} />
-                              ) : (
-                                <ProductPriceRange product={product} currencyCode={currencyCode} />
-                              )}
-                            </p>
+                            <div className="flex items-center gap-3">
+                              <p className="text-lg text-gray-900 sm:text-xl">
+                                {selectedVariant ? (
+                                  <ProductPrice
+                                    product={product}
+                                    variant={selectedVariant}
+                                    currencyCode={currencyCode}
+                                  />
+                                ) : (
+                                  <ProductPriceRange product={product} currencyCode={currencyCode} />
+                                )}
+                              </p>
+                              {selectedVariant && <SaleBadge variant={selectedVariant} />}
+                            </div>
                           </section>
 
                           {productSelectOptions && productSelectOptions.length > 5 && (
@@ -395,6 +405,9 @@ export const ProductTemplate = ({ product }: ProductTemplateProps) => {
                           )}
 
                           <div className="my-2 flex flex-col gap-2">
+                            {/* Variant-specific details - shown directly in product area, updates when SKU changes */}
+                            {selectedVariant && <ProductVariantDetails variant={selectedVariant} />}
+
                             <div className="flex items-center gap-4 py-2">
                               {!soldOut && <QuantitySelector variant={selectedVariant} />}
                               <div className="flex-1">
@@ -413,14 +426,8 @@ export const ProductTemplate = ({ product }: ProductTemplateProps) => {
                               </div>
                             </div>
 
-                            {!!product.description && (
-                              <div className="mt-4">
-                                <h3 className="mb-2">Description</h3>
-                                <div className="whitespace-pre-wrap text-base text-primary-800">
-                                  {product.description}
-                                </div>
-                              </div>
-                            )}
+                            {/* Product Details Tabs - Description, Specifications, Comfort */}
+                            <ProductDetailsTabs product={product} />
 
                             {product.categories && product.categories.length > 0 && (
                               <nav aria-label="Categories" className="mt-4">
