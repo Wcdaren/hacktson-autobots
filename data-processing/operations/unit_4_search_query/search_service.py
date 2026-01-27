@@ -1,0 +1,486 @@
+"""
+Unit 4: Search Query Service (Production)
+Main search APIs integrated with Bedrock and OpenSearch.
+"""
+
+import boto3
+from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth
+import json
+import logging
+import time
+import re
+from typing import Dict, List, Optional
+import base64
+
+logger = logging.getLogger(__name__)
+
+
+class SearchQueryService:
+    """Production search service with real AWS integrations."""
+    
+    def __init__(self, config: Dict):
+        self.config = config
+        
+        # Initialize Bedrock client
+        self.bedrock_client = boto3.client(
+            'bedrock-runtime',
+            region_name=config['aws']['region']
+        )
+        
+        # Initialize OpenSearch client
+        opensearch_config = config['aws']['opensearch']
+        if opensearch_config.get('use_iam_auth', True):
+            credentials = boto3.Session().get_credentials()
+            auth = AWSV4SignerAuth(credentials, config['aws']['region'])
+            
+            self.opensearch_client = OpenSearch(
+                hosts=[{'host': opensearch_config['endpoint'].replace('https://', ''), 
+                       'port': 443}],
+                http_auth=auth,
+                use_ssl=True,
+                verify_certs=True,
+                connection_class=RequestsHttpConnection
+            )
+        else:
+            self.opensearch_client = OpenSearch(
+                hosts=[opensearch_config['endpoint']],
+                http_auth=(opensearch_config['username'], opensearch_config['password']),
+                use_ssl=True,
+                verify_certs=True
+            )
+        
+        self.text_index = opensearch_config['indices']['text_index']
+        self.image_index = opensearch_config['indices']['image_index']
+        self.text_model_id = config['aws']['bedrock']['text_model_id']
+        self.image_model_id = config['aws']['bedrock']['image_model_id']
+    
+    def extract_filters(self, query: str) -> Dict:
+        """Extract filters from natural language query."""
+        filters = {}
+        query_lower = query.lower()
+        
+        # Extract price filters
+        price_match = re.search(r'under\s+\$?(\d+)', query_lower)
+        if price_match:
+            filters['price_max'] = float(price_match.group(1))
+        
+        between_match = re.search(r'between\s+\$?(\d+)\s+and\s+\$?(\d+)', query_lower)
+        if between_match:
+            filters['price_min'] = float(between_match.group(1))
+            filters['price_max'] = float(between_match.group(2))
+        
+        # Extract colors
+        colors = self.config['search_query']['filters']['color_values']
+        found_colors = [c for c in colors if c in query_lower]
+        if found_colors:
+            filters['colors'] = found_colors
+        
+        # Extract materials
+        materials = self.config['search_query']['filters']['material_values']
+        found_materials = [m for m in materials if m in query_lower]
+        if found_materials:
+            filters['materials'] = found_materials
+        
+        # Extract categories
+        categories = self.config['search_query']['filters']['category_values']
+        found_categories = [cat for cat in categories if cat in query_lower]
+        if found_categories:
+            filters['categories'] = found_categories
+        
+        # Extract sizes
+        sizes = self.config['search_query']['filters']['size_values']
+        found_sizes = [s for s in sizes if s in query_lower]
+        if found_sizes:
+            filters['sizes'] = found_sizes
+        
+        return filters
+    
+    def generate_query_embedding(self, query: str) -> List[float]:
+        """Generate embedding for search query using Bedrock."""
+        try:
+            body = json.dumps({"inputText": query})
+            
+            response = self.bedrock_client.invoke_model(
+                modelId=self.text_model_id,
+                body=body,
+                contentType='application/json',
+                accept='application/json'
+            )
+            
+            response_body = json.loads(response['body'].read())
+            return response_body.get('embedding', [])
+            
+        except Exception as e:
+            logger.error(f"Error generating query embedding: {str(e)}")
+            raise
+    
+    def knn_search(self, query_embedding: List[float], filters: Dict, k: int = 50) -> List[Dict]:
+        """Perform KNN search on OpenSearch."""
+        query_body = {
+            "size": k,
+            "query": {
+                "knn": {
+                    "text_embedding": {
+                        "vector": query_embedding,
+                        "k": k
+                    }
+                }
+            }
+        }
+        
+        # Add filters if present
+        if filters:
+            filter_clauses = []
+            
+            if 'price_max' in filters:
+                filter_clauses.append({"range": {"price": {"lte": filters['price_max']}}})
+            
+            if 'price_min' in filters:
+                filter_clauses.append({"range": {"price": {"gte": filters['price_min']}}})
+            
+            if filter_clauses:
+                query_body["query"] = {
+                    "bool": {
+                        "must": [query_body["query"]],
+                        "filter": filter_clauses
+                    }
+                }
+        
+        try:
+            response = self.opensearch_client.search(
+                index=self.text_index,
+                body=query_body
+            )
+            
+            results = []
+            for hit in response['hits']['hits']:
+                result = hit['_source']
+                result['score'] = hit['_score']
+                results.append(result)
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error in KNN search: {str(e)}")
+            raise
+    
+    def bm25_search(self, query: str, filters: Dict, k: int = 50) -> List[Dict]:
+        """Perform BM25 keyword search on OpenSearch."""
+        field_boosts = self.config['search_query']['field_boosts']
+        
+        query_body = {
+            "size": k,
+            "query": {
+                "multi_match": {
+                    "query": query,
+                    "fields": [
+                        f"product_name^{field_boosts['product_name']}",
+                        f"variant_name^{field_boosts['variant_name']}",
+                        f"description^{field_boosts['description']}",
+                        f"frontend_category^{field_boosts['categories']}",
+                        f"backend_category^{field_boosts['categories']}",
+                        f"aggregated_text^{field_boosts['properties']}"
+                    ],
+                    "type": "best_fields"
+                }
+            }
+        }
+        
+        # Add filters
+        if filters:
+            filter_clauses = []
+            
+            if 'price_max' in filters:
+                filter_clauses.append({"range": {"price": {"lte": filters['price_max']}}})
+            
+            if 'price_min' in filters:
+                filter_clauses.append({"range": {"price": {"gte": filters['price_min']}}})
+            
+            if filter_clauses:
+                query_body["query"] = {
+                    "bool": {
+                        "must": [query_body["query"]],
+                        "filter": filter_clauses
+                    }
+                }
+        
+        try:
+            response = self.opensearch_client.search(
+                index=self.text_index,
+                body=query_body
+            )
+            
+            results = []
+            for hit in response['hits']['hits']:
+                result = hit['_source']
+                result['score'] = hit['_score']
+                results.append(result)
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error in BM25 search: {str(e)}")
+            raise
+    
+    def reciprocal_rank_fusion(self, knn_results: List[Dict], 
+                               bm25_results: List[Dict], k: int = 60) -> List[Dict]:
+        """Combine KNN and BM25 results using Reciprocal Rank Fusion."""
+        rrf_scores = {}
+        
+        # Calculate RRF scores for KNN results
+        for rank, result in enumerate(knn_results, 1):
+            variant_id = result['variant_id']
+            rrf_scores[variant_id] = rrf_scores.get(variant_id, 0) + 1 / (k + rank)
+        
+        # Calculate RRF scores for BM25 results
+        for rank, result in enumerate(bm25_results, 1):
+            variant_id = result['variant_id']
+            rrf_scores[variant_id] = rrf_scores.get(variant_id, 0) + 1 / (k + rank)
+        
+        # Create result map
+        result_map = {}
+        for result in knn_results + bm25_results:
+            variant_id = result['variant_id']
+            if variant_id not in result_map:
+                result_map[variant_id] = result
+        
+        # Sort by RRF score
+        sorted_results = sorted(
+            result_map.items(),
+            key=lambda x: rrf_scores[x[0]],
+            reverse=True
+        )
+        
+        # Add RRF scores to results
+        final_results = []
+        for variant_id, result in sorted_results:
+            result['score'] = rrf_scores[variant_id]
+            final_results.append(result)
+        
+        return final_results
+    
+    def get_text_results(self, user_search_string: str) -> Dict:
+        """
+        Main API: Get text search results.
+        Returns JSON response with search results.
+        """
+        start_time = time.time()
+        
+        try:
+            # Validate input
+            if not user_search_string or not user_search_string.strip():
+                return {
+                    "status": "error",
+                    "error_code": "EMPTY_QUERY",
+                    "message": "empty search query"
+                }
+            
+            # Extract filters
+            filters = self.extract_filters(user_search_string)
+            
+            # Get search mode
+            search_mode = self.config['search_query']['default_search_mode']
+            max_results = self.config['search_query']['max_results']
+            
+            # Perform search based on mode
+            if search_mode == 'knn':
+                query_embedding = self.generate_query_embedding(user_search_string)
+                results = self.knn_search(query_embedding, filters, max_results)
+                
+            elif search_mode == 'bm25':
+                results = self.bm25_search(user_search_string, filters, max_results)
+                
+            elif search_mode == 'hybrid':
+                # Generate embedding for KNN
+                query_embedding = self.generate_query_embedding(user_search_string)
+                
+                # Perform both searches
+                knn_results = self.knn_search(query_embedding, filters, max_results)
+                bm25_results = self.bm25_search(user_search_string, filters, max_results)
+                
+                # Combine with RRF
+                rrf_k = self.config['search_query']['rrf']['k']
+                results = self.reciprocal_rank_fusion(knn_results, bm25_results, rrf_k)
+                results = results[:max_results]
+            
+            else:
+                raise ValueError(f"Unknown search mode: {search_mode}")
+            
+            # Check if no results
+            if not results:
+                return {
+                    "status": "error",
+                    "error_code": "NO_RESULTS",
+                    "message": "no results found for query"
+                }
+            
+            # Format results
+            formatted_results = []
+            for rank, result in enumerate(results, 1):
+                # Get default image
+                default_image = ""
+                if result.get('images'):
+                    for img in result['images']:
+                        if img.get('is_default'):
+                            default_image = img.get('url', '')
+                            break
+                    if not default_image and result['images']:
+                        default_image = result['images'][0].get('url', '')
+                
+                formatted_results.append({
+                    "variant_id": result['variant_id'],
+                    "product_name": result.get('product_name', ''),
+                    "variant_name": result.get('variant_name', ''),
+                    "description": result.get('description', ''),
+                    "price": result.get('price', 0),
+                    "currency": result.get('currency', 'SGD'),
+                    "image_url": default_image,
+                    "score": round(result.get('score', 0), 4),
+                    "rank": rank,
+                    "review_rating": result.get('review_rating', 0),
+                    "review_count": result.get('review_count', 0),
+                    "stock_status": result.get('stock_status', ''),
+                    "frontend_category": result.get('frontend_category', ''),
+                    "images": result.get('images', []),
+                    "properties": result.get('properties', {}),
+                    "options": result.get('options', [])
+                })
+            
+            response_time = int((time.time() - start_time) * 1000)
+            
+            return {
+                "status": "success",
+                "total_results": len(formatted_results),
+                "results": formatted_results,
+                "search_metadata": {
+                    "query": user_search_string,
+                    "search_mode": search_mode,
+                    "filters_applied": filters,
+                    "response_time_ms": response_time
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in get_text_results: {str(e)}")
+            return {
+                "status": "error",
+                "error_code": "SEARCH_FAILED",
+                "message": str(e)
+            }
+    
+    def get_image_match_result(self, image_base64: str) -> Dict:
+        """
+        Main API: Get image similarity search results.
+        Returns JSON response with similar products.
+        """
+        start_time = time.time()
+        
+        try:
+            # Validate image format
+            if not image_base64:
+                return {
+                    "status": "error",
+                    "error_code": "INVALID_IMAGE",
+                    "message": "invalid uploaded image format"
+                }
+            
+            # Generate image embedding
+            body = json.dumps({"inputImage": image_base64})
+            
+            response = self.bedrock_client.invoke_model(
+                modelId=self.image_model_id,
+                body=body,
+                contentType='application/json',
+                accept='application/json'
+            )
+            
+            response_body = json.loads(response['body'].read())
+            image_embedding = response_body.get('embedding', [])
+            
+            # Perform KNN search on image index
+            max_results = self.config['search_query']['max_results']
+            
+            query_body = {
+                "size": max_results,
+                "query": {
+                    "knn": {
+                        "image_embedding": {
+                            "vector": image_embedding,
+                            "k": max_results
+                        }
+                    }
+                }
+            }
+            
+            response = self.opensearch_client.search(
+                index=self.image_index,
+                body=query_body
+            )
+            
+            results = []
+            for hit in response['hits']['hits']:
+                result = hit['_source']
+                result['score'] = hit['_score']
+                results.append(result)
+            
+            if not results:
+                return {
+                    "status": "error",
+                    "error_code": "NO_RESULTS",
+                    "message": "no results found for query"
+                }
+            
+            # Format results
+            formatted_results = []
+            for rank, result in enumerate(results, 1):
+                formatted_results.append({
+                    "variant_id": result['variant_id'],
+                    "product_name": result.get('product_name', ''),
+                    "price": result.get('price', 0),
+                    "image_url": result.get('image_url', ''),
+                    "image_type": result.get('image_type', ''),
+                    "score": round(result.get('score', 0), 4),
+                    "rank": rank
+                })
+            
+            response_time = int((time.time() - start_time) * 1000)
+            
+            return {
+                "status": "success",
+                "total_results": len(formatted_results),
+                "results": formatted_results,
+                "search_metadata": {
+                    "search_type": "image_similarity",
+                    "response_time_ms": response_time
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in get_image_match_result: {str(e)}")
+            return {
+                "status": "error",
+                "error_code": "SEARCH_FAILED",
+                "message": str(e)
+            }
+
+
+def main():
+    """Test the search service."""
+    import yaml
+    
+    # Load config
+    with open('../config.yaml', 'r') as f:
+        config = yaml.safe_load(f)
+    
+    # Initialize service
+    service = SearchQueryService(config)
+    
+    # Test text search
+    print("Testing text search...")
+    result = service.get_text_results("grey sofa under $1000")
+    print(json.dumps(result, indent=2))
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    main()

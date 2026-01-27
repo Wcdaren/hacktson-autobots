@@ -1,0 +1,156 @@
+# Project Plan: E-Commerce Semantic Search Engine
+
+## Current Phase: Phase 1 - Inception
+## Current Step: Step 1.1 - Create User Stories
+
+---
+
+## Plan Steps
+
+### Phase 1: Inception
+
+#### Step 1.1: Create User Stories ✅ COMPLETED
+- [x] Analyze the data structure from CSV files
+- [x] Understand the requirements for semantic search and image similarity search
+- [x] Gather clarifications from stakeholder
+- [x] Create comprehensive user stories for the backend search system
+- [x] Document user stories in /inception/user_stories.md
+- [x] Request review and approval - APPROVED
+
+**Questions:**
+- [Question] What is the expected response time for search queries (text and image)?
+- [Answer] Max 3 seconds (hackathon demo, not production)
+
+- [Question] Should the search results include ranking/scoring information in the response?
+- [Answer] Yes
+
+- [Question] What is the expected maximum number of results to return per query?
+- [Answer] Max 50 results
+
+- [Question] Are there any specific filtering requirements (e.g., by price range, category, availability)?
+- [Answer] Yes, extract filters from search query (price, material, size, color, etc.)
+
+- [Question] Should the system support pagination for search results?
+- [Answer] No (hackathon demo only)
+
+- [Question] What image formats should be supported for image similarity search?
+- [Answer] JPG and PNG
+
+- [Question] Should the system handle multi-language search queries?
+- [Answer] No, English only
+
+- [Question] What fields should be returned in JSON response?
+- [Answer] Configurable, return entire variant JSON by default
+
+- [Question] Image similarity threshold?
+- [Answer] Configurable via YAML config
+
+- [Question] Hybrid search weighting approach?
+- [Answer] Use reciprocal rank fusion, configurable via YAML
+
+- [Question] Error handling approach?
+- [Answer] Return error codes with messages for: no results, invalid format, empty query
+
+- [Question] Data ingestion requirements?
+- [Answer] One-time bulk load from S3 only
+
+- [Question] Search scope?
+- [Answer] All text fields: name, description, properties, materials, dimensions, reviews, ratings, price, color, comfort, size, theme
+
+- [Question] Image embedding scope?
+- [Answer] All product images (both white background and lifestyle) for each variant 
+
+#### Step 1.2: Grouping User Stories into Units ✅ COMPLETED
+- [x] Review user stories from Step 1.1
+- [x] Identify cohesive groups of functionality
+- [x] Create loosely coupled units
+- [x] Document units in /inception/units/ folder:
+  - Unit 1: Data Ingestion Service
+  - Unit 2: Embedding Generation Service
+  - Unit 3: Search Index Service
+  - Unit 4: Search Query Service
+  - Unit 5: Configuration Management
+- [x] Create integration contract in /inception/units/integration_contract.md
+- [x] Request review and approval
+
+---
+
+## Notes
+
+### Data Structure Analysis (from /data/active_only/)
+
+**Available CSV Files:**
+1. **variant.csv** - Core product variant information including:
+   - market, variant_id, product_id, sku, variant_name, product_name
+   - lifecycle_status, product_type, categories (backend/frontend)
+   - pricing (original_price, sale_price, currency)
+   - descriptions, reviews (count, rating)
+   - stock status, delivery times
+   - URLs, images
+
+2. **variant_affinity.csv** - Product relationships/sets
+   - affinity_type, affinity_group_variant_id, variant_id
+
+3. **variant_file.csv** - Associated files (assembly instructions, etc.)
+   - variant_id, file_type, file_value, file_url
+
+4. **variant_image.csv** - Product images
+   - variant_id, image_type, image_url, image_position, default_image
+
+5. **variant_option.csv** - Product options/configurations
+   - variant_id, product_id, option_type, option_value, swatch_variant_id
+
+6. **variant_property.csv** - Detailed product properties
+   - variant_id, property_category, property_type, property_value, property_explanation
+
+### Key Requirements:
+- Backend system only (frontend already developed)
+- Two main functions:
+  - `get_text_results(String user_search_string)` - semantic text search
+  - `get_image_match_result(base64 image object)` - image similarity search
+- Data source: CSV files on S3
+- Embedding: AWS Bedrock Titan embeddings model
+- Search infrastructure: AWS OpenSearch Service
+- Search approaches to experiment: BM25, KNN, Reciprocal Rank Fusion, Hybrid
+- Available AWS resources: OpenSearch, RDS, S3, EC2, SageMaker, Bedrock
+- Return format: JSON array of products with parameters and image URLs
+
+---
+
+## Status: Phase 3 (Operations) - Complete! ✅ Ready for deployment
+
+---
+
+## Phase 3: Operations (Deployment)
+
+### Step 3.1: Configuration Setup ✅ COMPLETED
+- [x] Create production config.yaml with AWS resource settings
+- [x] Define search parameters and filter configurations
+- [x] Set up logging and monitoring configuration
+
+### Step 3.2: Data Pipeline Implementation ✅ COMPLETED
+- [x] Implement Unit 1: Data Ingestion Service (S3 CSV loading)
+- [x] Implement Unit 2: Embedding Generation Service (Bedrock integration)
+- [x] Implement Unit 3: Search Index Service (OpenSearch management)
+- [x] Create pipeline orchestration script
+
+### Step 3.3: Search Service Deployment ✅ COMPLETED
+- [x] Implement production Unit 4: Search Query Service
+- [x] Create Lambda handler for serverless deployment
+- [x] Integrate with Bedrock for query embeddings
+- [x] Integrate with OpenSearch for KNN/BM25/Hybrid search
+
+### Step 3.4: Infrastructure as Code ✅ COMPLETED
+- [x] Create CloudFormation template for serverless stack
+- [x] Define Lambda functions (text + image search)
+- [x] Configure API Gateway endpoints
+- [x] Set up IAM roles and permissions
+- [x] Create deployment script (deploy.sh)
+
+### Step 3.5: Documentation ✅ COMPLETED
+- [x] Create comprehensive deployment guide
+- [x] Document configuration options
+- [x] Add troubleshooting section
+- [x] Include cost estimation
+- [x] Add performance optimization tips
+- [x] Document monitoring and scaling strategies

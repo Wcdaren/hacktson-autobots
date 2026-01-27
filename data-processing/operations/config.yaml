@@ -1,0 +1,147 @@
+# Production Configuration for Semantic Search System
+
+aws:
+  region: us-east-1
+  
+  s3:
+    bucket: your-bucket-name  # Replace with your S3 bucket
+    data_prefix: data/active_only/
+    files:
+      - variant.csv
+      - variant_image.csv
+      - variant_property.csv
+      - variant_option.csv
+      - variant_affinity.csv
+      - variant_file.csv
+  
+  bedrock:
+    text_model_id: amazon.titan-embed-text-v1
+    text_embedding_dimension: 1536
+    image_model_id: amazon.titan-embed-image-v1
+    image_embedding_dimension: 1024
+    max_retries: 3
+    timeout_seconds: 30
+  
+  opensearch:
+    endpoint: https://your-domain.us-east-1.es.amazonaws.com  # Replace with your OpenSearch endpoint
+    username: admin  # Optional if using IAM auth
+    password: ""  # Optional if using IAM auth
+    use_iam_auth: true
+    indices:
+      text_index: product-text-embeddings
+      image_index: product-image-embeddings
+    
+search_query:
+  max_results: 50
+  response_timeout_seconds: 3
+  default_search_mode: hybrid  # Options: knn, bm25, hybrid
+  
+  # Search strategy weights for hybrid mode
+  hybrid_weights:
+    knn_weight: 0.6
+    bm25_weight: 0.4
+  
+  # Reciprocal Rank Fusion parameters
+  rrf:
+    k: 60  # RRF constant
+  
+  # Result scoring
+  min_similarity_score: 0.0  # Return all results above this threshold
+  
+  # Field boosting for BM25
+  field_boosts:
+    product_name: 3.0
+    variant_name: 2.5
+    description: 1.5
+    categories: 2.0
+    properties: 1.0
+  
+  # Filter extraction
+  filters:
+    enabled: true
+    price_keywords:
+      - under
+      - below
+      - less than
+      - max
+      - between
+    color_values:
+      - grey
+      - gray
+      - brown
+      - white
+      - black
+      - blue
+      - red
+      - green
+      - beige
+      - cream
+    material_values:
+      - wood
+      - leather
+      - fabric
+      - metal
+      - glass
+      - plastic
+      - rattan
+      - marble
+    size_values:
+      - small
+      - medium
+      - large
+      - king
+      - queen
+      - single
+      - double
+    category_values:
+      - sofa
+      - table
+      - chair
+      - bed
+      - desk
+      - cabinet
+      - shelf
+      - lamp
+
+data_ingestion:
+  batch_size: 100
+  max_workers: 4
+  
+embedding_generation:
+  batch_size: 25  # Bedrock batch limit
+  max_workers: 2
+  text_fields:
+    - variant_name
+    - product_name
+    - description
+    - aggregated_properties
+  
+indexing:
+  batch_size: 100
+  refresh_interval: 1s
+  number_of_shards: 2
+  number_of_replicas: 1
+  
+  # KNN settings
+  knn:
+    method: hnsw
+    engine: nmslib
+    space_type: l2
+    ef_construction: 512
+    m: 16
+
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR
+  format: json
+  cloudwatch:
+    enabled: true
+    log_group: /aws/semantic-search
+    retention_days: 7
+
+monitoring:
+  cloudwatch_metrics: true
+  metrics:
+    - search_latency
+    - search_errors
+    - embedding_generation_time
+    - index_size
