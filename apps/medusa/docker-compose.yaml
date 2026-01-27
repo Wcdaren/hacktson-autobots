@@ -19,7 +19,31 @@ services:
       - '6379:6379'
     volumes:
       - redis:/data
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: hacktson-autobots-opensearch
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - '9200:9200'
+      - '9600:9600'
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    command: >
+      bash -c "echo 'http.cors.enabled: true' >> /usr/share/opensearch/config/opensearch.yml &&
+               echo 'http.cors.allow-origin: \"*\"' >> /usr/share/opensearch/config/opensearch.yml &&
+               echo 'http.cors.allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE' >> /usr/share/opensearch/config/opensearch.yml &&
+               echo 'http.cors.allow-headers: X-Requested-With, Content-Type, Content-Length, Authorization' >> /usr/share/opensearch/config/opensearch.yml &&
+               /usr/share/opensearch/opensearch-docker-entrypoint.sh"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 volumes:
   database:
   redis:
+  opensearch-data:

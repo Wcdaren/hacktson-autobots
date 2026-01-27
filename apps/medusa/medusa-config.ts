@@ -76,6 +76,14 @@ module.exports = defineConfig({
     cacheModule,
     eventBusModule,
     workflowEngineModule,
+    // OpenSearch module for product search indexing
+    {
+      resolve: './src/modules/opensearch',
+      options: {
+        host: process.env.OPENSEARCH_HOST || 'http://localhost:9200',
+        productIndexName: process.env.OPENSEARCH_PRODUCT_INDEX || 'products',
+      },
+    },
   ],
   admin: {
     backendUrl: process.env.ADMIN_BACKEND_URL,
