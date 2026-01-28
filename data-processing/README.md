@@ -8,7 +8,13 @@ Backend search system for furniture e-commerce enabling semantic text search and
 
 **Everything you need is in one guide:**
 
-👉 **[operations/COMPLETE_GUIDE.md](operations/COMPLETE_GUIDE.md)** 👈
+👉 **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** 👈
+
+### Multi-Region AWS Setup
+
+This project uses a multi-region architecture:
+- **Bedrock** (Titan, Claude): `us-east-1` (models only available here)
+- **S3, OpenSearch, RDS**: `ap-southeast-1` (data locality)
 
 ### 5-Minute Deployment
 
@@ -122,9 +128,9 @@ python test_api.py http://your-endpoint
 ## 🔧 Requirements
 
 - **Python**: 3.9+
-- **AWS**: S3, Bedrock, OpenSearch
+- **AWS**: S3, Bedrock (us-east-1), OpenSearch (ap-southeast-1)
 - **EC2**: t3.medium+ (for EC2 deployment)
-- **SSH**: Access to jumphost-sg.castlery.com (for local dev)
+- **SSH**: Access to jumphost-sg.castlery.com (username: autobots) for local dev
 
 ---
 

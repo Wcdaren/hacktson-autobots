@@ -35,9 +35,8 @@ Domain-driven design and logical architecture.
 ```
 construction/
 └── search_query_service/
-    ├── domain_model.md                    # DDD domain model
-    ├── logical_design.md                  # Layered architecture design
-    ├── logical_design_features_5_6.md     # LLM fallback & tags design
+    ├── domain_model.md                    # DDD domain model (includes Features 5 & 6)
+    ├── logical_design.md                  # Complete layered architecture design (includes Features 5 & 6)
     ├── generate_implementation.py         # Code generation script
     └── src/                               # Demo implementation
         ├── api/

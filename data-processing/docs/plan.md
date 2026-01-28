@@ -154,3 +154,21 @@
 - [x] Include cost estimation
 - [x] Add performance optimization tips
 - [x] Document monitoring and scaling strategies
+
+### Step 3.6: AWS Connectivity & Multi-Region Setup ✅ COMPLETED
+- [x] Fixed AWS credentials (cleared conflicting environment variables)
+- [x] Configured multi-region setup (Bedrock in us-east-1, S3/OpenSearch in ap-southeast-1)
+- [x] Updated service code to use correct regions (embedding_service.py, search_service.py, llm_service.py)
+- [x] Fixed SSH tunnel configuration for OpenSearch access (autobots user, correct key path)
+- [x] Created comprehensive connectivity test scripts (aws_connectivity_test.py, test_region_config.py)
+- [x] Updated documentation with region configuration details
+- [x] Verified all AWS services operational (S3, Bedrock, OpenSearch via SSH tunnel)
+- [x] Organized test scripts into operations/tests/ directory
+- [x] Cleaned up project structure (moved docs to docs/, removed demo code)
+
+### Multi-Region Architecture Details
+| Service | Region | Notes |
+|---------|--------|-------|
+| Bedrock (Titan, Claude) | us-east-1 | Models only available here |
+| S3, OpenSearch, RDS | ap-southeast-1 | Data locality |
+| SSH Tunnel | jumphost-sg.castlery.com | Username: autobots |

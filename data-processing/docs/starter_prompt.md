@@ -1,5 +1,33 @@
 # prompts
 
+## AWS Region Configuration
+
+### Multi-Region Setup
+This project uses a multi-region AWS architecture due to service availability constraints:
+
+| Service | Region | Reason |
+|---------|--------|--------|
+| **Bedrock** (Titan Embeddings, Claude LLM) | `us-east-1` | Titan and Claude models only available in us-east-1 |
+| **S3** (Product Data) | `ap-southeast-1` | Data locality |
+| **OpenSearch** | `ap-southeast-1` | Data locality, accessed via SSH tunnel |
+| **RDS** | `ap-southeast-1` | Data locality, accessed via SSH tunnel |
+
+### SSH Tunnel Access
+OpenSearch and RDS are accessed via a jumphost for local development:
+- **Jumphost**: `jumphost-sg.castlery.com`
+- **Username**: `autobots`
+- **SSH Key Path**: `/Users/pillalamarrimallikarjun/OneDrive - Castlery Pte Ltd/workspace/Fun projects/autobots-semantic-search`
+
+### Configuration
+The `config.yaml` file handles this with separate region settings:
+```yaml
+aws:
+  region: ap-southeast-1          # Default region for S3, OpenSearch
+  bedrock_region: us-east-1       # Bedrock-specific region
+```
+
+---
+
 ## Feature Requirements
 
 ### Core Features (Implemented)

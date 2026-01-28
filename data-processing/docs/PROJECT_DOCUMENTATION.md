@@ -88,6 +88,33 @@ Complete technical documentation for the Semantic Search System.
                       Frontend / API
 ```
 
+### Multi-Region AWS Architecture
+
+This project uses a multi-region setup due to AWS service availability:
+
+| Service | Region | Reason |
+|---------|--------|--------|
+| **Bedrock** (Titan, Claude) | `us-east-1` | Models only available in us-east-1 |
+| **S3, OpenSearch, RDS** | `ap-southeast-1` | Data locality |
+
+The code handles this automatically via `config.yaml`:
+```yaml
+aws:
+  region: ap-southeast-1          # S3, OpenSearch
+  bedrock_region: us-east-1       # Bedrock Titan & Claude
+```
+
+Implementation files (`embedding_service.py`, `search_service.py`, `llm_service.py`) use `bedrock_region` for Bedrock API calls.
+
+### SSH Tunnel Access (Local Development)
+
+OpenSearch and RDS are accessed via jumphost for local development:
+- **Jumphost**: `jumphost-sg.castlery.com`
+- **Username**: `autobots`
+- **SSH Key**: Located in project credentials folder
+
+EC2 deployment has direct VPC access and doesn't require SSH tunnels.
+
 ### Deployment Architecture
 
 **Option 1: EC2**

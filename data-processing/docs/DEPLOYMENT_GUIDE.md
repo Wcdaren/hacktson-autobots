@@ -199,6 +199,22 @@ SSH_KEY_PATH = os.path.expanduser('~/.ssh/id_rsa')
 - ✅ OpenSearch via SSH tunnel (list indices)
 - ✅ RDS via SSH tunnel (optional)
 
+### Multi-Region Architecture
+
+This project uses a multi-region setup due to AWS service availability:
+
+| Service | Region | Reason |
+|---------|--------|--------|
+| **Bedrock** (Titan, Claude) | `us-east-1` | Models only available in us-east-1 |
+| **S3, OpenSearch, RDS** | `ap-southeast-1` | Data locality |
+
+The code handles this automatically via `config.yaml`:
+```yaml
+aws:
+  region: ap-southeast-1          # S3, OpenSearch
+  bedrock_region: us-east-1       # Bedrock Titan & Claude
+```
+
 ### SSH Tunnel Setup (Local Development Only)
 
 When working locally, OpenSearch/RDS are accessed through jumphost:
@@ -213,14 +229,11 @@ OpenSearch / RDS
 
 **SSH Key Setup:**
 ```bash
-# Check key exists
-ls -la ~/.ssh/id_rsa
+# SSH credentials location
+# /Users/pillalamarrimallikarjun/OneDrive - Castlery Pte Ltd/workspace/Fun projects/autobots-semantic-search
 
-# Set permissions
-chmod 600 ~/.ssh/id_rsa
-
-# Test connection
-ssh -i ~/.ssh/id_rsa ec2-user@jumphost-sg.castlery.com
+# Test connection (username: autobots)
+ssh -i /path/to/ssh/key autobots@jumphost-sg.castlery.com
 ```
 
 **Note**: EC2 deployment doesn't need SSH tunnels (direct VPC access).
@@ -472,8 +485,9 @@ OPENSEARCH_PASSWORD=your_password
 
 **Problem**: `Permission denied (publickey)`
 ```bash
-chmod 600 ~/.ssh/id_rsa
-ssh -i ~/.ssh/id_rsa ec2-user@jumphost-sg.castlery.com
+# Use correct username (autobots) and key path
+chmod 600 /path/to/ssh/key
+ssh -i /path/to/ssh/key autobots@jumphost-sg.castlery.com
 ```
 
 **Problem**: `Connection refused`
