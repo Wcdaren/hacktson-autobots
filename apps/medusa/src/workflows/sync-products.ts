@@ -78,11 +78,12 @@ export const syncProductsWorkflow = createWorkflow('sync-products', (input: Sync
       'thumbnail',
       'categories.id',
       'categories.name',
-      'collections.id',
-      'collections.title',
+      'collection.id',
+      'collection.title',
       'tags.id',
       'tags.value',
-      'variants.calculated_price',
+      'variants.id',
+      'variants.prices.*',
       'status',
       'created_at',
       'updated_at',
@@ -109,12 +110,14 @@ export const syncProductsWorkflow = createWorkflow('sync-products', (input: Sync
         handle: string;
         thumbnail: string | null;
         categories?: Array<{ id: string; name: string }>;
-        collections?: Array<{ id: string; title: string }>;
+        collection?: { id: string; title: string } | null;
         tags?: Array<{ id: string; value: string }>;
         variants?: Array<{
-          calculated_price?: {
-            calculated_amount?: number;
-          };
+          id: string;
+          prices?: Array<{
+            amount: number;
+            currency_code: string;
+          }>;
         }>;
         status: string;
         created_at: Date;
@@ -123,6 +126,18 @@ export const syncProductsWorkflow = createWorkflow('sync-products', (input: Sync
 
       productList.forEach((product) => {
         if (product.status === 'published') {
+          // Get the minimum price from all variants and prices
+          let minPrice = 0;
+          if (product.variants && product.variants.length > 0) {
+            const allPrices = product.variants
+              .flatMap((v) => v.prices || [])
+              .map((p) => p.amount)
+              .filter((amount) => amount > 0);
+            if (allPrices.length > 0) {
+              minPrice = Math.min(...allPrices);
+            }
+          }
+
           publishedProducts.push({
             id: product.id,
             title: product.title,
@@ -131,11 +146,11 @@ export const syncProductsWorkflow = createWorkflow('sync-products', (input: Sync
             thumbnail: product.thumbnail,
             category_ids: product.categories?.map((c) => c.id) || [],
             category_names: product.categories?.map((c) => c.name) || [],
-            collection_ids: product.collections?.map((c) => c.id) || [],
-            collection_names: product.collections?.map((c) => c.title) || [],
+            collection_ids: product.collection ? [product.collection.id] : [],
+            collection_names: product.collection ? [product.collection.title] : [],
             tag_ids: product.tags?.map((t) => t.id) || [],
             tag_values: product.tags?.map((t) => t.value) || [],
-            price: product.variants?.[0]?.calculated_price?.calculated_amount || 0,
+            price: minPrice,
             created_at: product.created_at,
             updated_at: product.updated_at,
           });

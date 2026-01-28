@@ -72,15 +72,18 @@ export async function POST(req: MedusaRequest<SyncRequestBody>, res: MedusaRespo
       },
     });
   } catch (error) {
+    // Log the full error for debugging
+    console.error('OpenSearch sync error:', error);
+
     // Re-throw MedusaErrors as-is
     if (error instanceof MedusaError) {
       throw error;
     }
 
-    // Wrap unexpected errors
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      `Failed to sync products to OpenSearch: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    );
+    // Wrap unexpected errors with more details
+    const errorMessage =
+      error instanceof Error ? `${error.message}${error.stack ? `\nStack: ${error.stack}` : ''}` : 'Unknown error';
+
+    throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, `Failed to sync products to OpenSearch: ${errorMessage}`);
   }
 }
