@@ -25,13 +25,14 @@ class SearchQueryService:
     def __init__(self, config: Dict):
         self.config = config
         
-        # Initialize Bedrock client
+        # Initialize Bedrock client (use bedrock_region for us-east-1)
+        bedrock_region = config['aws'].get('bedrock_region', config['aws']['region'])
         self.bedrock_client = boto3.client(
             'bedrock-runtime',
-            region_name=config['aws']['region']
+            region_name=bedrock_region
         )
         
-        # Initialize OpenSearch client
+        # Initialize OpenSearch client (use main region for ap-southeast-1)
         opensearch_config = config['aws']['opensearch']
         if opensearch_config.get('use_iam_auth', True):
             credentials = boto3.Session().get_credentials()

@@ -53,9 +53,11 @@ class ClaudeLLMService:
     
     def __init__(self, config: Dict):
         self.config = config
+        # Use bedrock_region for Bedrock (us-east-1)
+        bedrock_region = config['aws'].get('bedrock_region', config['aws']['region'])
         self.bedrock_client = boto3.client(
             'bedrock-runtime',
-            region_name=config['aws']['region']
+            region_name=bedrock_region
         )
         self.intent_cache = LLMCache()
         self.tag_cache = LLMCache()

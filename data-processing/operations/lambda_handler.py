@@ -7,7 +7,13 @@ import json
 import yaml
 import logging
 import os
+from dotenv import load_dotenv
 from unit_4_search_query.search_service import SearchQueryService
+
+# Load environment variables (for local testing)
+# In Lambda, environment variables are set in the Lambda configuration
+if os.path.exists('.env'):
+    load_dotenv()
 
 # Configure logging
 logger = logging.getLogger()
@@ -18,19 +24,41 @@ config = None
 search_service = None
 
 
+def load_config_with_env():
+    """Load configuration from YAML and override with environment variables."""
+    config_str = os.environ.get('SEARCH_CONFIG')
+    if config_str:
+        config = yaml.safe_load(config_str)
+    else:
+        with open('config.yaml', 'r') as f:
+            config = yaml.safe_load(f)
+    
+    # Override with environment variables for security
+    if os.getenv('S3_BUCKET_NAME'):
+        config['aws']['s3']['bucket'] = os.getenv('S3_BUCKET_NAME')
+    
+    if os.getenv('OPENSEARCH_USERNAME'):
+        config['aws']['opensearch']['username'] = os.getenv('OPENSEARCH_USERNAME')
+    
+    if os.getenv('OPENSEARCH_PASSWORD'):
+        config['aws']['opensearch']['password'] = os.getenv('OPENSEARCH_PASSWORD')
+    
+    # Optional: Override feature flags
+    if os.getenv('LLM_FALLBACK_ENABLED'):
+        config['llm_fallback']['enabled'] = os.getenv('LLM_FALLBACK_ENABLED').lower() == 'true'
+    
+    if os.getenv('RELATED_TAGS_ENABLED'):
+        config['related_tags']['enabled'] = os.getenv('RELATED_TAGS_ENABLED').lower() == 'true'
+    
+    return config
+
+
 def init_service():
     """Initialize search service (called once per Lambda container)."""
     global config, search_service
     
     if search_service is None:
-        # Load config from environment or file
-        config_str = os.environ.get('SEARCH_CONFIG')
-        if config_str:
-            config = yaml.safe_load(config_str)
-        else:
-            with open('config.yaml', 'r') as f:
-                config = yaml.safe_load(f)
-        
+        config = load_config_with_env()
         search_service = SearchQueryService(config)
         logger.info("Search service initialized")
 

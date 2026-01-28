@@ -1,10 +1,14 @@
 # Production Configuration for Semantic Search System
 
 aws:
-  region: us-east-1
+  # Default region for S3 and OpenSearch
+  region: ap-southeast-1
+  
+  # Bedrock uses us-east-1 (Titan models only available there)
+  bedrock_region: us-east-1
   
   s3:
-    bucket: your-bucket-name  # Replace with your S3 bucket
+    bucket: your-bucket-name  # Replace with your S3 bucket (or set S3_BUCKET_NAME env var)
     data_prefix: data/active_only/
     files:
       - variant.csv
@@ -24,9 +28,9 @@ aws:
   
   opensearch:
     endpoint: https://your-domain.us-east-1.es.amazonaws.com  # Replace with your OpenSearch endpoint
-    username: admin  # Optional if using IAM auth
-    password: ""  # Optional if using IAM auth
-    use_iam_auth: true
+    # Credentials moved to .env file for security
+    # username and password are loaded from environment variables
+    use_iam_auth: true  # Set to false if using username/password auth
     indices:
       text_index: product-text-embeddings
       image_index: product-image-embeddings

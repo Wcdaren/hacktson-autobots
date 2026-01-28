@@ -18,9 +18,11 @@ class EmbeddingService:
     
     def __init__(self, config: Dict):
         self.config = config
+        # Use bedrock_region for Bedrock (us-east-1), fallback to region if not set
+        bedrock_region = config['aws'].get('bedrock_region', config['aws']['region'])
         self.bedrock_client = boto3.client(
             'bedrock-runtime',
-            region_name=config['aws']['region']
+            region_name=bedrock_region
         )
         self.text_model_id = config['aws']['bedrock']['text_model_id']
         self.image_model_id = config['aws']['bedrock']['image_model_id']

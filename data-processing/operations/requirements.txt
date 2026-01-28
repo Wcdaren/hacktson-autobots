@@ -12,6 +12,16 @@ numpy>=1.24.0
 
 # Configuration
 pyyaml>=6.0.1
+python-dotenv>=1.0.0
 
 # Utilities
 python-dateutil>=2.8.2
+
+# Flask API server (for EC2 deployment)
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# SSH Tunneling (for local development with jumphost)
+sshtunnel>=0.4.0
+paramiko>=3.0.0
+pymysql>=1.1.0

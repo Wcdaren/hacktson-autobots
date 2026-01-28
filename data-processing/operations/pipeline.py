@@ -7,7 +7,12 @@ import yaml
 import logging
 import sys
 import time
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent))
@@ -24,9 +29,31 @@ logger = logging.getLogger(__name__)
 
 
 def load_config(config_path: str = 'config.yaml'):
-    """Load configuration from YAML file."""
+    """Load configuration from YAML file and override with environment variables."""
     with open(config_path, 'r') as f:
-        return yaml.safe_load(f)
+        config = yaml.safe_load(f)
+    
+    # Override with environment variables
+    if os.getenv('S3_BUCKET_NAME'):
+        config['aws']['s3']['bucket'] = os.getenv('S3_BUCKET_NAME')
+    
+    if os.getenv('OPENSEARCH_USERNAME'):
+        config['aws']['opensearch']['username'] = os.getenv('OPENSEARCH_USERNAME')
+    
+    if os.getenv('OPENSEARCH_PASSWORD'):
+        config['aws']['opensearch']['password'] = os.getenv('OPENSEARCH_PASSWORD')
+    
+    # Optional: Override feature flags
+    if os.getenv('LLM_FALLBACK_ENABLED'):
+        config['llm_fallback']['enabled'] = os.getenv('LLM_FALLBACK_ENABLED').lower() == 'true'
+    
+    if os.getenv('RELATED_TAGS_ENABLED'):
+        config['related_tags']['enabled'] = os.getenv('RELATED_TAGS_ENABLED').lower() == 'true'
+    
+    if os.getenv('SIMILARITY_THRESHOLD'):
+        config['llm_fallback']['similarity_threshold'] = float(os.getenv('SIMILARITY_THRESHOLD'))
+    
+    return config
 
 
 def run_pipeline(config_path: str = 'config.yaml'):
