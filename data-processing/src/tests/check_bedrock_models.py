@@ -4,6 +4,7 @@
 import os
 import boto3
 import json
+import yaml
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -17,38 +18,44 @@ env_path = Path('.env')
 if env_path.exists():
     load_dotenv(env_path, override=True)
 
-AWS_REGION = os.getenv('AWS_DEFAULT_REGION', 'ap-southeast-1')
+# Load config to get Bedrock region
+config_path = Path('config.yaml')
+if config_path.exists():
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+    BEDROCK_REGION = config.get('aws', {}).get('bedrock_region', 'us-east-1')
+else:
+    BEDROCK_REGION = 'us-east-1'
 
-print(f"Checking Bedrock models in region: {AWS_REGION}")
+print(f"Checking Bedrock models in region: {BEDROCK_REGION}")
 print("=" * 70)
 
 try:
     # Try bedrock-runtime first (doesn't need ListFoundationModels permission)
-    bedrock_runtime = boto3.client('bedrock-runtime', region_name=AWS_REGION)
+    bedrock_runtime = boto3.client('bedrock-runtime', region_name=BEDROCK_REGION)
     
-    # Test common Titan embedding model IDs
+    # Test Amazon Titan embedding model IDs only
     test_models = [
-        'amazon.titan-embed-text-v1',
         'amazon.titan-embed-text-v2:0',
         'amazon.titan-embed-image-v1',
-        'cohere.embed-english-v3',
-        'cohere.embed-multilingual-v3',
     ]
     
-    print("\nTesting embedding models by invoking them:")
+    print("\nTesting Amazon Titan embedding models:")
     print("-" * 70)
     
     working_models = []
     
     for model_id in test_models:
         try:
-            # Try to invoke with minimal input
+            # Handle different input formats for text vs image models
             if 'image' in model_id:
-                # Skip image models for now
-                print(f"⏭️  {model_id:45} [Skipped - image model]")
-                continue
+                # Test image model with a minimal 1x1 pixel PNG
+                # This is a base64-encoded 1x1 transparent PNG
+                minimal_png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                body = json.dumps({"inputImage": minimal_png})
+            else:
+                body = json.dumps({"inputText": "test"})
             
-            body = json.dumps({"inputText": "test"})
             response = bedrock_runtime.invoke_model(
                 modelId=model_id,
                 body=body,
@@ -59,7 +66,8 @@ try:
             result = json.loads(response['body'].read())
             if 'embedding' in result:
                 dim = len(result['embedding'])
-                print(f"✓ {model_id:45} [Working - {dim}D]")
+                model_type = "Image" if 'image' in model_id else "Text"
+                print(f"✓ {model_id:45} [Working - {dim}D {model_type}]")
                 working_models.append((model_id, dim))
             else:
                 print(f"? {model_id:45} [Unknown response format]")
@@ -92,7 +100,7 @@ try:
         print("2. Click 'Manage model access'")
         print("3. Enable: Amazon Titan Embeddings G1 - Text")
         print("4. Wait 5-10 minutes for access to be granted")
-        print(f"\nDirect link: https://console.aws.amazon.com/bedrock/home?region={AWS_REGION}#/modelaccess")
+        print(f"\nDirect link: https://console.aws.amazon.com/bedrock/home?region={BEDROCK_REGION}#/modelaccess")
     
     # Also try to list models if permission exists
     print("\n" + "=" * 70)
@@ -100,19 +108,19 @@ try:
     print("=" * 70)
     
     try:
-        bedrock = boto3.client('bedrock', region_name=AWS_REGION)
+        bedrock = boto3.client('bedrock', region_name=BEDROCK_REGION)
         response = bedrock.list_foundation_models()
         
         print(f"\n✓ Found {len(response['modelSummaries'])} total models")
         
-        # Filter embedding models
+        # Filter Amazon Titan embedding models only
         embedding_models = [
             m for m in response['modelSummaries'] 
-            if 'embed' in m['modelId'].lower()
+            if 'embed' in m['modelId'].lower() and 'amazon' in m.get('providerName', '').lower()
         ]
         
         if embedding_models:
-            print(f"\nEmbedding models available:")
+            print(f"\nAmazon Titan embedding models available:")
             for model in embedding_models:
                 print(f"  - {model['modelId']}")
                 print(f"    Provider: {model.get('providerName', 'N/A')}")

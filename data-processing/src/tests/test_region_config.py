@@ -50,7 +50,7 @@ try:
     import json
     body = json.dumps({"inputText": "test"})
     response = bedrock_client.invoke_model(
-        modelId='amazon.titan-embed-text-v1',
+        modelId='amazon.titan-embed-text-v2:0',
         body=body,
         contentType='application/json',
         accept='application/json'
@@ -58,7 +58,7 @@ try:
     result = json.loads(response['body'].read())
     embedding = result['embedding']
     print(f"✓ Bedrock client created with region: {bedrock_region}")
-    print(f"  Model: amazon.titan-embed-text-v1")
+    print(f"  Model: amazon.titan-embed-text-v2:0")
     print(f"  Embedding dimension: {len(embedding)}")
 except Exception as e:
     print(f"❌ Bedrock failed: {e}")

@@ -66,45 +66,102 @@ class SearchQueryService:
         self.tag_index = TagIndexService(config)
     
     def extract_filters(self, query: str) -> Dict:
-        """Extract filters from natural language query."""
+        """Extract filters from natural language query using config-based patterns."""
         filters = {}
         query_lower = query.lower()
+        filter_config = self.config['search_query']['filters']
+        catalog = self.config.get('catalog', {})
         
-        # Extract price filters
-        price_match = re.search(r'under\s+\$?(\d+)', query_lower)
-        if price_match:
-            filters['price_max'] = float(price_match.group(1))
+        # Extract price filters using config patterns
+        price_patterns = filter_config.get('price_patterns', [])
+        for pattern_config in price_patterns:
+            pattern = pattern_config['pattern']
+            pattern_type = pattern_config['type']
+            
+            match = re.search(pattern, query_lower, re.IGNORECASE)
+            if match:
+                if pattern_type == 'max':
+                    price_str = match.group(1).replace(',', '')
+                    filters['price_max'] = float(price_str)
+                    break
+                elif pattern_type == 'min':
+                    price_str = match.group(1).replace(',', '')
+                    filters['price_min'] = float(price_str)
+                    break
+                elif pattern_type == 'range':
+                    min_str = match.group(1).replace(',', '')
+                    max_str = match.group(2).replace(',', '')
+                    filters['price_min'] = float(min_str)
+                    filters['price_max'] = float(max_str)
+                    break
+                elif pattern_type == 'approximate':
+                    price_str = match.group(1).replace(',', '')
+                    price = float(price_str)
+                    variance = pattern_config.get('variance_percent', 20) / 100
+                    filters['price_min'] = price * (1 - variance)
+                    filters['price_max'] = price * (1 + variance)
+                    break
         
-        between_match = re.search(r'between\s+\$?(\d+)\s+and\s+\$?(\d+)', query_lower)
-        if between_match:
-            filters['price_min'] = float(between_match.group(1))
-            filters['price_max'] = float(between_match.group(2))
-        
-        # Extract colors
-        colors = self.config['search_query']['filters']['color_values']
-        found_colors = [c for c in colors if c in query_lower]
+        # Extract colors (from unified catalog)
+        colors = catalog.get('colors', [])
+        found_colors = self._match_filter_values(query_lower, colors)
         if found_colors:
             filters['colors'] = found_colors
         
-        # Extract materials
-        materials = self.config['search_query']['filters']['material_values']
-        found_materials = [m for m in materials if m in query_lower]
+        # Extract materials (from unified catalog)
+        materials = catalog.get('materials', [])
+        found_materials = self._match_filter_values(query_lower, materials)
         if found_materials:
             filters['materials'] = found_materials
         
-        # Extract categories
-        categories = self.config['search_query']['filters']['category_values']
-        found_categories = [cat for cat in categories if cat in query_lower]
+        # Extract categories (from unified catalog)
+        categories = catalog.get('categories', [])
+        found_categories = self._match_filter_values(query_lower, categories)
         if found_categories:
             filters['categories'] = found_categories
         
-        # Extract sizes
-        sizes = self.config['search_query']['filters']['size_values']
-        found_sizes = [s for s in sizes if s in query_lower]
+        # Extract sizes (from unified catalog)
+        sizes = catalog.get('sizes', [])
+        found_sizes = self._match_filter_values(query_lower, sizes)
         if found_sizes:
             filters['sizes'] = found_sizes
         
+        # Extract styles (from unified catalog)
+        styles = catalog.get('styles', [])
+        found_styles = self._match_filter_values(query_lower, styles)
+        if found_styles:
+            filters['styles'] = found_styles
+        
+        # Extract room types (from unified catalog)
+        rooms = catalog.get('rooms', [])
+        found_rooms = self._match_filter_values(query_lower, rooms)
+        if found_rooms:
+            filters['rooms'] = found_rooms
+        
+        # Extract features (from unified catalog)
+        features = catalog.get('features', [])
+        found_features = self._match_filter_values(query_lower, features)
+        if found_features:
+            filters['features'] = found_features
+        
+        # Extract conditions (from unified catalog)
+        conditions = catalog.get('conditions', [])
+        found_conditions = self._match_filter_values(query_lower, conditions)
+        if found_conditions:
+            filters['conditions'] = found_conditions
+        
         return filters
+    
+    def _match_filter_values(self, query: str, values: List[str]) -> List[str]:
+        """Match filter values using word boundary matching for accuracy."""
+        found = []
+        for value in values:
+            # Use word boundary matching to avoid partial matches
+            # e.g., "oak" shouldn't match "soaking"
+            pattern = r'\b' + re.escape(value.lower()) + r'\b'
+            if re.search(pattern, query, re.IGNORECASE):
+                found.append(value)
+        return found
     
     def generate_query_embedding(self, query: str) -> List[float]:
         """Generate embedding for search query using Bedrock."""

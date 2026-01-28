@@ -109,9 +109,9 @@ try:
     print(f"  Total models: {len(response['modelSummaries'])}")
     
     required_models = [
-        'amazon.titan-embed-text-v1',
+        'amazon.titan-embed-text-v2:0',
         'amazon.titan-embed-image-v1',
-        'anthropic.claude-3-sonnet'
+        'anthropic.claude-sonnet-4-5'
     ]
     
     for model_id in required_models:
@@ -137,9 +137,9 @@ try:
     test_text = "grey sofa under $1000"
     body = json.dumps({"inputText": test_text})
     
-    # Use Titan Text Embeddings V1 (1536D) - most commonly available
+    # Use Titan Text Embeddings V2 (1024D)
     response = bedrock_runtime.invoke_model(
-        modelId='amazon.titan-embed-text-v1',
+        modelId='amazon.titan-embed-text-v2:0',
         body=body,
         contentType='application/json',
         accept='application/json'
@@ -150,7 +150,7 @@ try:
     
     print(f"✓ Bedrock Text Embedding Successful")
     print(f"  Region: {bedrock_region}")
-    print(f"  Model: amazon.titan-embed-text-v1")
+    print(f"  Model: amazon.titan-embed-text-v2:0")
     print(f"  Test text: '{test_text}'")
     print(f"  Embedding dimension: {len(embedding)}")
     print(f"  Sample values: {embedding[:3]}...")

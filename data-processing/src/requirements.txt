@@ -25,3 +25,6 @@ flask-cors>=4.0.0
 sshtunnel>=0.4.0
 paramiko>=3.0.0
 pymysql>=1.1.0
+
+# Testing
+pytest>=9.0.0

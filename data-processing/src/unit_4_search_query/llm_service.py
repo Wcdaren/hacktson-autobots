@@ -66,21 +66,21 @@ class ClaudeLLMService:
         self.llm_fallback_config = config.get('llm_fallback', {})
         self.similarity_threshold = self.llm_fallback_config.get('similarity_threshold', 0.3)
         self.intent_model_id = self.llm_fallback_config.get(
-            'model_id', 'anthropic.claude-3-sonnet-20240229-v1:0'
+            'model_id', 'anthropic.claude-sonnet-4-5-20250929-v1:0'
         )
         self.intent_cache_ttl = self.llm_fallback_config.get('cache_ttl_seconds', 3600)
         
         # Feature 6 config
         self.tags_config = config.get('related_tags', {})
         self.tag_model_id = self.tags_config.get(
-            'llm_model_id', 'anthropic.claude-3-sonnet-20240229-v1:0'
+            'llm_model_id', 'anthropic.claude-sonnet-4-5-20250929-v1:0'
         )
         self.tag_cache_ttl = self.tags_config.get('cache_ttl_seconds', 1800)
         self.min_tags = self.tags_config.get('min_tags', 3)
         self.max_tags = self.tags_config.get('max_tags', 10)
         
-        # Catalog values for validation
-        self.catalog_values = self.tags_config.get('catalog_values', {})
+        # Unified catalog values (single source of truth)
+        self.catalog = config.get('catalog', {})
     
     def should_trigger_fallback(self, top_score: float) -> bool:
         """Check if LLM fallback should be triggered based on similarity score."""
@@ -195,10 +195,10 @@ Now analyze: "{query}"
     
     def _build_catalog_context(self) -> str:
         """Build catalog knowledge context for LLM prompt."""
-        categories = self.catalog_values.get('categories', [])[:20]
-        materials = self.catalog_values.get('materials', [])
-        styles = self.catalog_values.get('styles', [])
-        colors = self.catalog_values.get('colors', [])
+        categories = self.catalog.get('categories', [])[:20]
+        materials = self.catalog.get('materials', [])
+        styles = self.catalog.get('styles', [])
+        colors = self.catalog.get('colors', [])
         
         return f"""Available product attributes in our catalog:
 Categories: {', '.join(categories)}
@@ -351,11 +351,11 @@ Valid types: category, price_range, material, style, color
     def _build_tag_catalog_context(self) -> str:
         """Build catalog values context for tag generation."""
         return f"""Valid tag values (ONLY use these):
-Categories: {', '.join(self.catalog_values.get('categories', [])[:25])}
-Materials: {', '.join(self.catalog_values.get('materials', []))}
-Styles: {', '.join(self.catalog_values.get('styles', []))}
-Colors: {', '.join(self.catalog_values.get('colors', []))}
-Price Ranges: {', '.join(self.catalog_values.get('price_ranges', []))}"""
+Categories: {', '.join(self.catalog.get('categories', [])[:25])}
+Materials: {', '.join(self.catalog.get('materials', []))}
+Styles: {', '.join(self.catalog.get('styles', []))}
+Colors: {', '.join(self.catalog.get('colors', []))}
+Price Ranges: {', '.join(self.catalog.get('price_ranges', []))}"""
     
     def _is_valid_tag(self, tag: str, tag_type: str) -> bool:
         """Validate tag against catalog values."""
@@ -368,7 +368,7 @@ Price Ranges: {', '.join(self.catalog_values.get('price_ranges', []))}"""
         }
         
         catalog_key = type_map.get(tag_type, 'categories')
-        valid_values = self.catalog_values.get(catalog_key, [])
+        valid_values = self.catalog.get(catalog_key, [])
         
         # Case-insensitive comparison
         return tag.lower() in [v.lower() for v in valid_values]
