@@ -23,6 +23,7 @@ import { createWorkflow, transform, WorkflowResponse } from '@medusajs/framework
 import { useQueryGraphStep } from '@medusajs/medusa/core-flows';
 import { syncProductsStep } from './steps/sync-products';
 import { deleteProductsFromOpenSearchStep } from './steps/delete-products-from-opensearch';
+import { generateEmbeddingsStep } from './steps/generate-embeddings';
 
 /**
  * Input type for the sync products workflow
@@ -34,6 +35,8 @@ type SyncProductsWorkflowInput = {
   limit?: number;
   /** Number of products to skip (for pagination) */
   offset?: number;
+  /** Whether to generate embeddings for semantic search */
+  generateEmbeddings?: boolean;
 };
 
 /**
@@ -163,10 +166,16 @@ export const syncProductsWorkflow = createWorkflow('sync-products', (input: Sync
     },
   );
 
-  // Step 3: Index published products to OpenSearch
-  syncProductsStep({ products: publishedProducts });
+  // Step 3: Generate embeddings for published products (if enabled)
+  const { products: productsWithEmbeddings } = generateEmbeddingsStep({
+    products: publishedProducts,
+    generateImageEmbeddings: false,
+  });
 
-  // Step 4: Remove unpublished products from OpenSearch
+  // Step 4: Index published products (with embeddings) to OpenSearch
+  syncProductsStep({ products: productsWithEmbeddings });
+
+  // Step 5: Remove unpublished products from OpenSearch
   deleteProductsFromOpenSearchStep({ ids: unpublishedProductIds });
 
   // Return workflow response

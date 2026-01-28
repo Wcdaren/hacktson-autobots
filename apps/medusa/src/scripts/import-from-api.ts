@@ -467,6 +467,9 @@ function transformAPIProduct(apiProduct: any, index: number): any {
     const variantListPrice = parseFloat(variant.list_price) || listPrice;
     const options = extractVariantOptions(variant, productOptions);
 
+    // Extract variant-specific images
+    const variantImages = extractVariantImages(variant);
+
     // Extract variant-specific properties
     const variantProps = extractVariantProperties(variant);
     const variantMetadata: Record<string, any> = {};

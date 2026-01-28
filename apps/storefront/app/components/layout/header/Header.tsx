@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import { type FC, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
 import { HeaderSideNav } from './HeaderSideNav';
+import { HeaderSearchBox } from './HeaderSearchBox';
 
 export type HeaderProps = {};
 
@@ -147,8 +148,12 @@ export const Header: FC<HeaderProps> = () => {
                 </div>
               </div>
 
-              {/* Right: Cart */}
-              <div className="flex items-center justify-end flex-1 md:flex-none">
+              {/* Right: Search + Cart */}
+              <div className="flex items-center justify-end flex-1 md:flex-none gap-2">
+                {/* Search Box */}
+                <HeaderSearchBox />
+
+                {/* Cart */}
                 {!!cart && hasProducts && (
                   <button
                     aria-label="open shopping cart"

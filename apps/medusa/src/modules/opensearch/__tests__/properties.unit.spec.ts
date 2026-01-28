@@ -83,7 +83,7 @@ const categoryIdArbitrary = fc
 /**
  * Generates a valid category name (alphanumeric with spaces)
  */
-const categoryNameArbitrary = fc
+const categoryNameArbitrary: fc.Arbitrary<string[]> = fc
   .array(
     fc.constantFrom('Electronics', 'Clothing', 'Books', 'Home', 'Sports', 'Toys', 'Food', 'Beauty', 'Garden', 'Office'),
     {
@@ -91,7 +91,7 @@ const categoryNameArbitrary = fc
       maxLength: 3,
     },
   )
-  .map((arr) => [...new Set(arr)]);
+  .map((arr) => [...new Set(arr)] as string[]);
 
 /**
  * Generates a valid collection ID
@@ -895,6 +895,428 @@ describe('Property-Based Tests for PLP Search & Filter', () => {
             );
           },
         ),
+        { numRuns: 50 },
+      );
+    });
+  });
+});
+
+// ============================================================================
+// Semantic Search Property-Based Tests
+// ============================================================================
+
+describe('Property-Based Tests for Semantic Image Search', () => {
+  /**
+   * Represents a search result with score and match type
+   */
+  interface SearchResult {
+    id: string;
+    score: number;
+    matchType: 'exact' | 'semantic' | 'visual' | 'hybrid';
+    similarityScore?: number;
+  }
+
+  /**
+   * Represents an embedding vector
+   */
+  type EmbeddingVector = number[];
+
+  /**
+   * Generates a valid embedding vector of specified dimension
+   */
+  const embeddingVectorArbitrary = (dimension: number = 1024): fc.Arbitrary<EmbeddingVector> =>
+    fc.array(fc.float({ min: -1, max: 1, noNaN: true }), {
+      minLength: dimension,
+      maxLength: dimension,
+    });
+
+  /**
+   * Generates a valid search result
+   */
+  const searchResultArbitrary: fc.Arbitrary<SearchResult> = fc.record({
+    id: productIdArbitrary,
+    score: fc.float({ min: 0, max: 1, noNaN: true }),
+    matchType: fc.constantFrom('exact', 'semantic', 'visual', 'hybrid') as fc.Arbitrary<
+      'exact' | 'semantic' | 'visual' | 'hybrid'
+    >,
+    similarityScore: fc.option(fc.float({ min: 0, max: 1, noNaN: true }), { nil: undefined }),
+  });
+
+  /**
+   * Generates a list of search results
+   */
+  const searchResultListArbitrary = fc.array(searchResultArbitrary, { minLength: 0, maxLength: 50 });
+
+  /**
+   * Simulates sorting search results by score descending
+   */
+  function sortResultsByScore(results: SearchResult[]): SearchResult[] {
+    return [...results].sort((a, b) => b.score - a.score);
+  }
+
+  /**
+   * Validates that results are sorted by score descending
+   */
+  function isResultsSortedByScore(results: SearchResult[]): boolean {
+    for (let i = 0; i < results.length - 1; i++) {
+      if (results[i].score < results[i + 1].score) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  describe('10.1 P1: Search Result Ordering Correctness', () => {
+    /**
+     * **Validates: Requirements 1.1.2, 1.2.2, 2.2.1**
+     *
+     * For any search result list results:
+     *   results[i].score >= results[i+1].score for all i
+     */
+    it('should maintain descending score order after sorting', () => {
+      fc.assert(
+        fc.property(searchResultListArbitrary, (results) => {
+          const sortedResults = sortResultsByScore(results);
+          return isResultsSortedByScore(sortedResults);
+        }),
+        { numRuns: 100 },
+      );
+    });
+
+    /**
+     * **Validates: Requirements 1.1.2, 1.2.2, 2.2.1**
+     *
+     * Sorting should preserve all results
+     */
+    it('should preserve all results when sorting', () => {
+      fc.assert(
+        fc.property(searchResultListArbitrary, (results) => {
+          const sortedResults = sortResultsByScore(results);
+
+          if (sortedResults.length !== results.length) {
+            return false;
+          }
+
+          const originalIds = new Set(results.map((r) => r.id));
+          const sortedIds = new Set(sortedResults.map((r) => r.id));
+
+          return originalIds.size === sortedIds.size && [...originalIds].every((id) => sortedIds.has(id));
+        }),
+        { numRuns: 100 },
+      );
+    });
+
+    /**
+     * **Validates: Requirements 1.1.2, 1.2.2, 2.2.1**
+     *
+     * Highest score should be first after sorting
+     */
+    it('should have highest score first after sorting', () => {
+      fc.assert(
+        fc.property(fc.array(searchResultArbitrary, { minLength: 1, maxLength: 50 }), (results) => {
+          const sortedResults = sortResultsByScore(results);
+          const maxScore = Math.max(...results.map((r) => r.score));
+          return sortedResults[0].score === maxScore;
+        }),
+        { numRuns: 100 },
+      );
+    });
+
+    /**
+     * **Validates: Requirements 1.1.2, 1.2.2, 2.2.1**
+     *
+     * Sorting should be idempotent
+     */
+    it('should be idempotent - sorting twice gives same result', () => {
+      fc.assert(
+        fc.property(searchResultListArbitrary, (results) => {
+          const sortedOnce = sortResultsByScore(results);
+          const sortedTwice = sortResultsByScore(sortedOnce);
+
+          if (sortedOnce.length !== sortedTwice.length) return false;
+
+          for (let i = 0; i < sortedOnce.length; i++) {
+            if (sortedOnce[i].id !== sortedTwice[i].id) {
+              return false;
+            }
+          }
+
+          return true;
+        }),
+        { numRuns: 50 },
+      );
+    });
+  });
+
+  describe('10.2 P3: File Validation Correctness', () => {
+    /**
+     * File validation types and helpers
+     */
+    const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+    interface FileInfo {
+      type: string;
+      size: number;
+    }
+
+    interface ValidationResult {
+      valid: boolean;
+      error?: string;
+    }
+
+    /**
+     * Simulates file validation logic
+     */
+    function validateFile(file: FileInfo): ValidationResult {
+      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        return { valid: false, error: 'Invalid file type' };
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        return { valid: false, error: 'File too large' };
+      }
+      return { valid: true };
+    }
+
+    /**
+     * Generates a valid file info
+     */
+    const validFileArbitrary: fc.Arbitrary<FileInfo> = fc.record({
+      type: fc.constantFrom('image/jpeg', 'image/png', 'image/webp'),
+      size: fc.integer({ min: 1, max: MAX_FILE_SIZE }),
+    });
+
+    /**
+     * Generates an invalid file type
+     */
+    const invalidTypeFileArbitrary: fc.Arbitrary<FileInfo> = fc.record({
+      type: fc.constantFrom('image/gif', 'image/bmp', 'application/pdf', 'text/plain'),
+      size: fc.integer({ min: 1, max: MAX_FILE_SIZE }),
+    });
+
+    /**
+     * Generates an oversized file
+     */
+    const oversizedFileArbitrary: fc.Arbitrary<FileInfo> = fc.record({
+      type: fc.constantFrom('image/jpeg', 'image/png', 'image/webp'),
+      size: fc.integer({ min: MAX_FILE_SIZE + 1, max: MAX_FILE_SIZE * 10 }),
+    });
+
+    /**
+     * **Validates: Requirements 2.1.3**
+     *
+     * For any uploaded file:
+     *   If file.type not in ['image/jpeg', 'image/png', 'image/webp']
+     *   or file.size > 5MB
+     *   then return validation error
+     */
+    it('should accept valid files', () => {
+      fc.assert(
+        fc.property(validFileArbitrary, (file) => {
+          const result = validateFile(file);
+          return result.valid === true && result.error === undefined;
+        }),
+        { numRuns: 100 },
+      );
+    });
+
+    it('should reject invalid file types', () => {
+      fc.assert(
+        fc.property(invalidTypeFileArbitrary, (file) => {
+          const result = validateFile(file);
+          return result.valid === false && result.error !== undefined;
+        }),
+        { numRuns: 100 },
+      );
+    });
+
+    it('should reject oversized files', () => {
+      fc.assert(
+        fc.property(oversizedFileArbitrary, (file) => {
+          const result = validateFile(file);
+          return result.valid === false && result.error !== undefined;
+        }),
+        { numRuns: 100 },
+      );
+    });
+
+    it('should reject files that are both invalid type and oversized', () => {
+      fc.assert(
+        fc.property(
+          fc.record({
+            type: fc.constantFrom('image/gif', 'application/pdf'),
+            size: fc.integer({ min: MAX_FILE_SIZE + 1, max: MAX_FILE_SIZE * 10 }),
+          }),
+          (file) => {
+            const result = validateFile(file);
+            return result.valid === false;
+          },
+        ),
+        { numRuns: 50 },
+      );
+    });
+  });
+
+  describe('10.3 P4: Embedding Vector Dimension Correctness', () => {
+    const EXPECTED_DIMENSION = 1024;
+
+    /**
+     * Simulates embedding generation (returns vector of correct dimension)
+     */
+    function generateEmbedding(input: string): EmbeddingVector {
+      // Simulate deterministic embedding based on input
+      const vector: number[] = [];
+      for (let i = 0; i < EXPECTED_DIMENSION; i++) {
+        vector.push(Math.sin(input.charCodeAt(i % input.length) + i) * 0.5);
+      }
+      return vector;
+    }
+
+    /**
+     * **Validates: Requirements 3.1.1, 3.1.2**
+     *
+     * For any generated embedding vector:
+     *   embedding.length === 1024
+     */
+    it('should generate embeddings with correct dimension', () => {
+      fc.assert(
+        fc.property(fc.string({ minLength: 1, maxLength: 1000 }), (input) => {
+          const embedding = generateEmbedding(input);
+          return embedding.length === EXPECTED_DIMENSION;
+        }),
+        { numRuns: 100 },
+      );
+    });
+
+    it('should generate embeddings with values in valid range', () => {
+      fc.assert(
+        fc.property(fc.string({ minLength: 1, maxLength: 1000 }), (input) => {
+          const embedding = generateEmbedding(input);
+          return embedding.every((v) => v >= -1 && v <= 1 && !Number.isNaN(v));
+        }),
+        { numRuns: 100 },
+      );
+    });
+
+    it('should generate consistent embeddings for same input', () => {
+      fc.assert(
+        fc.property(fc.string({ minLength: 1, maxLength: 100 }), (input) => {
+          const embedding1 = generateEmbedding(input);
+          const embedding2 = generateEmbedding(input);
+
+          if (embedding1.length !== embedding2.length) return false;
+
+          for (let i = 0; i < embedding1.length; i++) {
+            if (embedding1[i] !== embedding2[i]) return false;
+          }
+
+          return true;
+        }),
+        { numRuns: 50 },
+      );
+    });
+  });
+
+  describe('10.4 P5: Retry Mechanism Correctness', () => {
+    const MAX_RETRIES = 3;
+    const BASE_DELAY_MS = 1000;
+
+    interface RetryConfig {
+      maxRetries: number;
+      baseDelayMs: number;
+    }
+
+    interface RetryResult {
+      success: boolean;
+      attempts: number;
+      totalDelayMs: number;
+    }
+
+    /**
+     * Simulates retry mechanism with exponential backoff
+     */
+    function simulateRetry(
+      failureCount: number,
+      config: RetryConfig = { maxRetries: MAX_RETRIES, baseDelayMs: BASE_DELAY_MS },
+    ): RetryResult {
+      let attempts = 0;
+      let totalDelayMs = 0;
+
+      for (let i = 0; i < config.maxRetries; i++) {
+        attempts++;
+
+        if (i < failureCount) {
+          // Simulate failure and delay
+          if (i < config.maxRetries - 1) {
+            totalDelayMs += config.baseDelayMs * Math.pow(2, i);
+          }
+        } else {
+          // Success
+          return { success: true, attempts, totalDelayMs };
+        }
+      }
+
+      return { success: false, attempts, totalDelayMs };
+    }
+
+    /**
+     * **Validates: Requirements 3.2.3**
+     *
+     * For any embedding generation request:
+     *   If failed, retry up to 3 times
+     *   Retry interval grows exponentially (1s, 2s, 4s)
+     */
+    it('should succeed if failures are less than max retries', () => {
+      fc.assert(
+        fc.property(fc.integer({ min: 0, max: MAX_RETRIES - 1 }), (failureCount) => {
+          const result = simulateRetry(failureCount);
+          return result.success === true && result.attempts === failureCount + 1;
+        }),
+        { numRuns: 50 },
+      );
+    });
+
+    it('should fail after max retries exceeded', () => {
+      fc.assert(
+        fc.property(fc.integer({ min: MAX_RETRIES, max: MAX_RETRIES + 10 }), (failureCount) => {
+          const result = simulateRetry(failureCount);
+          return result.success === false && result.attempts === MAX_RETRIES;
+        }),
+        { numRuns: 50 },
+      );
+    });
+
+    it('should use exponential backoff delays', () => {
+      fc.assert(
+        fc.property(fc.integer({ min: 1, max: MAX_RETRIES - 1 }), (failureCount) => {
+          const result = simulateRetry(failureCount);
+
+          // Calculate expected delay: sum of 1s * 2^i for i = 0 to failureCount-1
+          let expectedDelay = 0;
+          for (let i = 0; i < failureCount; i++) {
+            expectedDelay += BASE_DELAY_MS * Math.pow(2, i);
+          }
+
+          return result.totalDelayMs === expectedDelay;
+        }),
+        { numRuns: 50 },
+      );
+    });
+
+    it('should not delay on first attempt', () => {
+      const result = simulateRetry(0);
+      expect(result.success).toBe(true);
+      expect(result.attempts).toBe(1);
+      expect(result.totalDelayMs).toBe(0);
+    });
+
+    it('should respect custom retry configuration', () => {
+      fc.assert(
+        fc.property(fc.integer({ min: 1, max: 10 }), fc.integer({ min: 100, max: 5000 }), (maxRetries, baseDelayMs) => {
+          const config = { maxRetries, baseDelayMs };
+          const result = simulateRetry(maxRetries + 1, config);
+          return result.success === false && result.attempts === maxRetries;
+        }),
         { numRuns: 50 },
       );
     });

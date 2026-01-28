@@ -11,6 +11,21 @@ import type { SearchProviderProps } from '@elastic/react-search-ui';
 import { type FC, type PropsWithChildren, useState, useEffect, createContext, useContext } from 'react';
 
 import { createSearchConnector } from '@libs/util/search/connector';
+import { createHybridSearchConnector } from '@libs/util/search/hybridSearchConnector';
+
+/**
+ * Search mode configuration
+ */
+export type SearchMode = 'standard' | 'semantic' | 'hybrid';
+
+/**
+ * Image search state
+ */
+export interface ImageSearchState {
+  isActive: boolean;
+  previewUrl: string | null;
+  isLoading: boolean;
+}
 
 /**
  * Context to track if search is ready (client-side only)
@@ -18,11 +33,49 @@ import { createSearchConnector } from '@libs/util/search/connector';
 const SearchReadyContext = createContext<boolean>(false);
 
 /**
+ * Context for search mode
+ */
+const SearchModeContext = createContext<{
+  mode: SearchMode;
+  setMode: (mode: SearchMode) => void;
+}>({
+  mode: 'standard',
+  setMode: () => {},
+});
+
+/**
+ * Context for image search state
+ */
+const ImageSearchContext = createContext<{
+  imageSearch: ImageSearchState;
+  setImageSearch: (state: ImageSearchState) => void;
+  clearImageSearch: () => void;
+}>({
+  imageSearch: { isActive: false, previewUrl: null, isLoading: false },
+  setImageSearch: () => {},
+  clearImageSearch: () => {},
+});
+
+/**
  * Hook to check if search context is available
  * Returns false during SSR and true after client-side hydration
  */
 export function useSearchReady(): boolean {
   return useContext(SearchReadyContext);
+}
+
+/**
+ * Hook to access and control search mode
+ */
+export function useSearchMode() {
+  return useContext(SearchModeContext);
+}
+
+/**
+ * Hook to access and control image search state
+ */
+export function useImageSearchState() {
+  return useContext(ImageSearchContext);
 }
 
 /**
@@ -153,12 +206,45 @@ const searchConfig: Omit<SearchProviderProps['config'], 'apiConnector'> = {
 /**
  * Get search configuration with connector
  * Creates connector lazily to avoid SSR issues
+ * @param mode - Search mode to use
+ * @param backendUrl - Medusa backend URL for hybrid/semantic search
+ * @param publishableApiKey - Medusa publishable API key
  */
-function getSearchConfig(): SearchProviderProps['config'] {
+function getSearchConfig(
+  mode: SearchMode = 'standard',
+  backendUrl?: string,
+  publishableApiKey?: string,
+): SearchProviderProps['config'] {
+  let connector;
+
+  if (mode === 'hybrid' || mode === 'semantic') {
+    connector = createHybridSearchConnector({
+      backendUrl: backendUrl || 'http://localhost:9000',
+      publishableApiKey,
+      enableSemanticSearch: mode === 'hybrid',
+      keywordWeight: mode === 'hybrid' ? 0.5 : 0,
+      semanticWeight: mode === 'hybrid' ? 0.5 : 1,
+    });
+  } else {
+    connector = createSearchConnector();
+  }
+
   return {
     ...searchConfig,
-    apiConnector: createSearchConnector(),
+    apiConnector: connector,
   };
+}
+
+/**
+ * Props for SearchProvider
+ */
+interface SearchProviderComponentProps {
+  /** Initial search mode */
+  initialMode?: SearchMode;
+  /** Medusa backend URL for semantic/hybrid search */
+  backendUrl?: string;
+  /** Medusa publishable API key */
+  publishableApiKey?: string;
 }
 
 /**
@@ -173,6 +259,7 @@ function getSearchConfig(): SearchProviderProps['config'] {
  * - URL state synchronization for shareable search results
  * - Debounced URL updates for better UX
  * - SSR-safe: Only initializes search on client-side
+ * - Semantic search support via hybrid connector
  *
  * @example
  * ```tsx
@@ -180,7 +267,7 @@ function getSearchConfig(): SearchProviderProps['config'] {
  *
  * function App() {
  *   return (
- *     <SearchProvider>
+ *     <SearchProvider initialMode="hybrid">
  *       <SearchBox />
  *       <SearchResults />
  *     </SearchProvider>
@@ -188,8 +275,23 @@ function getSearchConfig(): SearchProviderProps['config'] {
  * }
  * ```
  */
-export const SearchProvider: FC<PropsWithChildren> = ({ children }) => {
+export const SearchProvider: FC<PropsWithChildren<SearchProviderComponentProps>> = ({
+  children,
+  initialMode = 'standard',
+  backendUrl,
+  publishableApiKey,
+}) => {
   const [isClient, setIsClient] = useState(false);
+  const [searchMode, setSearchMode] = useState<SearchMode>(initialMode);
+  const [imageSearch, setImageSearch] = useState<ImageSearchState>({
+    isActive: false,
+    previewUrl: null,
+    isLoading: false,
+  });
+
+  const clearImageSearch = () => {
+    setImageSearch({ isActive: false, previewUrl: null, isLoading: false });
+  };
 
   useEffect(() => {
     setIsClient(true);
@@ -198,13 +300,25 @@ export const SearchProvider: FC<PropsWithChildren> = ({ children }) => {
   // During SSR or initial hydration, render children with search not ready
   // This prevents the connector from trying to connect during SSR
   if (!isClient) {
-    return <SearchReadyContext.Provider value={false}>{children}</SearchReadyContext.Provider>;
+    return (
+      <SearchModeContext.Provider value={{ mode: searchMode, setMode: setSearchMode }}>
+        <ImageSearchContext.Provider value={{ imageSearch, setImageSearch, clearImageSearch }}>
+          <SearchReadyContext.Provider value={false}>{children}</SearchReadyContext.Provider>
+        </ImageSearchContext.Provider>
+      </SearchModeContext.Provider>
+    );
   }
 
   return (
-    <SearchReadyContext.Provider value={true}>
-      <ElasticSearchProvider config={getSearchConfig()}>{children}</ElasticSearchProvider>
-    </SearchReadyContext.Provider>
+    <SearchModeContext.Provider value={{ mode: searchMode, setMode: setSearchMode }}>
+      <ImageSearchContext.Provider value={{ imageSearch, setImageSearch, clearImageSearch }}>
+        <SearchReadyContext.Provider value={true}>
+          <ElasticSearchProvider config={getSearchConfig(searchMode, backendUrl, publishableApiKey)}>
+            {children}
+          </ElasticSearchProvider>
+        </SearchReadyContext.Provider>
+      </ImageSearchContext.Provider>
+    </SearchModeContext.Provider>
   );
 };
 

@@ -19,7 +19,7 @@ import clsx from 'clsx';
 import { Link } from 'react-router';
 import { ProductListItem } from '@app/components/product/ProductListItem';
 import type { StoreProduct } from '@medusajs/types';
-import { useSearchReady } from '@app/providers/search-provider';
+import { useSearchReady, useImageSearchState } from '@app/providers/search-provider';
 
 /**
  * Props for the SearchResults component
@@ -50,15 +50,33 @@ interface SearchResultsWithSearchProps extends SearchResultsProps {
 }
 
 /**
+ * Match type for search results
+ */
+export type MatchType = 'exact' | 'semantic' | 'visual' | 'hybrid';
+
+/**
+ * Enhanced search result with match type and similarity score
+ */
+export interface EnhancedSearchResult {
+  product: StoreProduct;
+  matchType: MatchType;
+  similarityScore?: number;
+}
+
+/**
  * Transform a search result into a StoreProduct-compatible object
  * Maps OpenSearch indexed fields to the ProductListItem expected format
  */
-function transformResultToProduct(result: SearchResult): StoreProduct {
+function transformResultToProduct(result: SearchResult): EnhancedSearchResult {
   // Use min_price for display, fallback to price for backward compatibility
   const price = (result.min_price?.raw as number) || (result.price?.raw as number) || 0;
   const currencyCode = (result.currency_code?.raw as string) || 'usd';
 
-  return {
+  // Determine match type from result metadata
+  const matchType = (result.match_type?.raw as MatchType) || 'exact';
+  const similarityScore = result.similarity_score?.raw as number | undefined;
+
+  const product = {
     id: result.id?.raw as string,
     title: result.title?.raw as string,
     handle: result.handle?.raw as string,
@@ -74,21 +92,49 @@ function transformResultToProduct(result: SearchResult): StoreProduct {
       },
     ],
   } as StoreProduct;
+
+  return { product, matchType, similarityScore };
 }
+
+/**
+ * Match type badge component
+ */
+const MatchTypeBadge: FC<{ matchType: MatchType; similarityScore?: number }> = ({ matchType, similarityScore }) => {
+  const badgeConfig = {
+    exact: { label: 'Exact Match', className: 'bg-green-100 text-green-800' },
+    semantic: { label: 'Semantic', className: 'bg-blue-100 text-blue-800' },
+    visual: { label: 'Visual Match', className: 'bg-purple-100 text-purple-800' },
+    hybrid: { label: 'Hybrid', className: 'bg-orange-100 text-orange-800' },
+  };
+
+  const config = badgeConfig[matchType];
+
+  return (
+    <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
+      <span className={clsx('px-2 py-0.5 text-xs font-medium rounded-full', config.className)}>{config.label}</span>
+      {similarityScore !== undefined && (
+        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
+          {Math.round(similarityScore * 100)}%
+        </span>
+      )}
+    </div>
+  );
+};
 
 /**
  * Custom result view that wraps ProductListItem with a link
  */
 const ResultView: FC<{ result: SearchResult }> = ({ result }) => {
-  const product = transformResultToProduct(result);
+  const { product, matchType, similarityScore } = transformResultToProduct(result);
   const handle = result.handle?.raw as string;
 
   return (
     <Link
       to={`/products/${handle}`}
-      className="block transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
+      className="block relative transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
       aria-label={`View ${product.title}`}
     >
+      {matchType !== 'exact' && <MatchTypeBadge matchType={matchType} similarityScore={similarityScore} />}
       <ProductListItem product={product} />
     </Link>
   );
@@ -307,6 +353,32 @@ const LoadingSkeleton: FC<{ count?: number }> = ({ count = 8 }) => {
 };
 
 /**
+ * Image search indicator with clear button
+ */
+const ImageSearchIndicator: FC<{ previewUrl: string; onClear: () => void }> = ({ previewUrl, onClear }) => {
+  return (
+    <div className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-200 rounded-lg mb-4">
+      <img src={previewUrl} alt="Search image" className="w-12 h-12 object-cover rounded-md" />
+      <div className="flex-1">
+        <p className="text-sm font-medium text-purple-900">Searching by image</p>
+        <p className="text-xs text-purple-600">Showing visually similar products</p>
+      </div>
+      <button
+        type="button"
+        onClick={onClear}
+        className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-md transition-colors"
+        aria-label="Clear image search"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        Clear
+      </button>
+    </div>
+  );
+};
+
+/**
  * Empty state when no results are found
  */
 const EmptyState: FC<{ searchTerm?: string }> = ({ searchTerm }) => {
@@ -362,6 +434,8 @@ const SearchResultsComponent: FC<SearchResultsWithSearchProps> = ({
   totalResults,
   searchTerm,
 }) => {
+  const { imageSearch, clearImageSearch } = useImageSearchState();
+
   // Show loading state
   if (isLoading) {
     return (
@@ -379,6 +453,9 @@ const SearchResultsComponent: FC<SearchResultsWithSearchProps> = ({
   if (totalResults === 0) {
     return (
       <div className={className}>
+        {imageSearch.isActive && imageSearch.previewUrl && (
+          <ImageSearchIndicator previewUrl={imageSearch.previewUrl} onClear={clearImageSearch} />
+        )}
         <EmptyState searchTerm={searchTerm} />
       </div>
     );
@@ -386,6 +463,11 @@ const SearchResultsComponent: FC<SearchResultsWithSearchProps> = ({
 
   return (
     <div className={clsx('space-y-6', className)}>
+      {/* Image search indicator */}
+      {imageSearch.isActive && imageSearch.previewUrl && (
+        <ImageSearchIndicator previewUrl={imageSearch.previewUrl} onClear={clearImageSearch} />
+      )}
+
       {/* Header with result count and per-page selector */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <PagingInfo view={CustomPagingInfoView} />
@@ -443,4 +525,4 @@ export const SearchResults: FC<SearchResultsProps> = (props) => {
 /**
  * Export the unwrapped component for testing purposes
  */
-export { SearchResultsComponent, LoadingSkeleton, EmptyState, ResultView };
+export { SearchResultsComponent, LoadingSkeleton, EmptyState, ResultView, MatchTypeBadge, ImageSearchIndicator };

@@ -82,6 +82,21 @@ module.exports = defineConfig({
       options: {
         host: process.env.OPENSEARCH_HOST || 'http://localhost:9200',
         productIndexName: process.env.OPENSEARCH_PRODUCT_INDEX || 'products',
+        // Enable AWS IAM authentication when using AWS OpenSearch Service with IAM
+        useAwsAuth: process.env.OPENSEARCH_USE_AWS_AUTH === 'true',
+        awsRegion: process.env.AWS_REGION || 'us-east-1',
+        // Basic authentication (username/password) for OpenSearch with fine-grained access control
+        username: process.env.OPENSEARCH_USERNAME,
+        password: process.env.OPENSEARCH_PASSWORD,
+      },
+    },
+    // Embedding module for semantic search
+    {
+      resolve: './src/modules/embedding',
+      options: {
+        awsRegion: process.env.BEDROCK_REGION || process.env.AWS_REGION || 'us-east-1',
+        bedrockModelId: process.env.BEDROCK_MODEL_ID || 'amazon.titan-embed-text-v2:0',
+        rekognitionEnabled: process.env.REKOGNITION_ENABLED === 'true',
       },
     },
   ],

@@ -663,3 +663,390 @@ describe('OpenSearchModuleService', () => {
     });
   });
 });
+
+// Add mock for search method
+const mockSearch = jest.fn();
+
+// Update the mock to include search
+jest.mock('@opensearch-project/opensearch', () => ({
+  Client: jest.fn().mockImplementation(() => ({
+    bulk: mockBulk,
+    deleteByQuery: mockDeleteByQuery,
+    search: mockSearch,
+    indices: {
+      exists: mockIndicesExists,
+      create: mockIndicesCreate,
+      delete: mockIndicesDelete,
+    },
+    cluster: {
+      health: mockClusterHealth,
+    },
+    count: mockCount,
+  })),
+}));
+
+describe('OpenSearchModuleService - Vector Search Methods', () => {
+  let service: OpenSearchModuleService;
+  const defaultOptions: OpenSearchModuleOptions = {
+    host: 'http://localhost:9200',
+    productIndexName: 'test-products',
+  };
+
+  // Helper to create mock embedding vector
+  const createMockEmbedding = (dimension: number = 1024): number[] => {
+    return Array(dimension)
+      .fill(0)
+      .map(() => Math.random());
+  };
+
+  // Helper to create mock search hit
+  const createMockHit = (id: string, score: number, title: string = 'Test Product') => ({
+    _id: id,
+    _source: {
+      id,
+      title,
+      handle: `product-${id}`,
+      thumbnail: `https://example.com/${id}.jpg`,
+      min_price: 100,
+      currency_code: 'usd',
+    },
+    _score: score,
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    service = new OpenSearchModuleService({}, defaultOptions);
+  });
+
+  describe('semanticSearch', () => {
+    it('should return empty array when index does not exist', async () => {
+      mockIndicesExists.mockResolvedValue({ body: false });
+
+      const embedding = createMockEmbedding();
+      const results = await service.semanticSearch(embedding);
+
+      expect(results).toEqual([]);
+      expect(mockSearch).not.toHaveBeenCalled();
+    });
+
+    it('should perform k-NN search with embedding vector', async () => {
+      mockIndicesExists.mockResolvedValue({ body: true });
+      mockSearch.mockResolvedValue({
+        body: {
+          hits: {
+            hits: [createMockHit('prod_1', 0.95), createMockHit('prod_2', 0.85)],
+          },
+        },
+      });
+
+      const embedding = createMockEmbedding();
+      const results = await service.semanticSearch(embedding);
+
+      expect(results).toHaveLength(2);
+      expect(results[0].matchType).toBe('semantic');
+      expect(results[0].score).toBe(0.95);
+      expect(mockSearch).toHaveBeenCalledWith({
+        index: 'test-products',
+        body: expect.objectContaining({
+          size: 20,
+          query: {
+            knn: {
+              text_embedding: {
+                vector: embedding,
+                k: 20,
+              },
+            },
+          },
+        }),
+      });
+    });
+
+    it('should apply filters when provided', async () => {
+      mockIndicesExists.mockResolvedValue({ body: true });
+      mockSearch.mockResolvedValue({
+        body: { hits: { hits: [] } },
+      });
+
+      const embedding = createMockEmbedding();
+      await service.semanticSearch(embedding, {
+        filters: { category_names: ['Furniture'] },
+      });
+
+      expect(mockSearch).toHaveBeenCalledWith({
+        index: 'test-products',
+        body: expect.objectContaining({
+          query: {
+            bool: {
+              must: [expect.any(Object)],
+              filter: [{ terms: { category_names: ['Furniture'] } }],
+            },
+          },
+        }),
+      });
+    });
+
+    it('should filter results by minScore', async () => {
+      mockIndicesExists.mockResolvedValue({ body: true });
+      mockSearch.mockResolvedValue({
+        body: {
+          hits: {
+            hits: [createMockHit('prod_1', 0.95), createMockHit('prod_2', 0.5), createMockHit('prod_3', 0.3)],
+          },
+        },
+      });
+
+      const embedding = createMockEmbedding();
+      const results = await service.semanticSearch(embedding, { minScore: 0.6 });
+
+      expect(results).toHaveLength(1);
+      expect(results[0].document.id).toBe('prod_1');
+    });
+
+    it('should respect size option', async () => {
+      mockIndicesExists.mockResolvedValue({ body: true });
+      mockSearch.mockResolvedValue({
+        body: { hits: { hits: [] } },
+      });
+
+      const embedding = createMockEmbedding();
+      await service.semanticSearch(embedding, { size: 10 });
+
+      expect(mockSearch).toHaveBeenCalledWith({
+        index: 'test-products',
+        body: expect.objectContaining({
+          size: 10,
+        }),
+      });
+    });
+  });
+
+  describe('imageSearch', () => {
+    it('should return empty array when index does not exist', async () => {
+      mockIndicesExists.mockResolvedValue({ body: false });
+
+      const embedding = createMockEmbedding();
+      const results = await service.imageSearch(embedding);
+
+      expect(results).toEqual([]);
+    });
+
+    it('should perform k-NN search on image_embedding field', async () => {
+      mockIndicesExists.mockResolvedValue({ body: true });
+      mockSearch.mockResolvedValue({
+        body: {
+          hits: {
+            hits: [createMockHit('prod_1', 0.9)],
+          },
+        },
+      });
+
+      const embedding = createMockEmbedding();
+      const results = await service.imageSearch(embedding);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].matchType).toBe('visual');
+      expect(mockSearch).toHaveBeenCalledWith({
+        index: 'test-products',
+        body: expect.objectContaining({
+          query: {
+            knn: {
+              image_embedding: {
+                vector: embedding,
+                k: 20,
+              },
+            },
+          },
+        }),
+      });
+    });
+
+    it('should include similarityScore for visual matches', async () => {
+      mockIndicesExists.mockResolvedValue({ body: true });
+      mockSearch.mockResolvedValue({
+        body: {
+          hits: {
+            hits: [createMockHit('prod_1', 0.88)],
+          },
+        },
+      });
+
+      const embedding = createMockEmbedding();
+      const results = await service.imageSearch(embedding);
+
+      expect(results[0].similarityScore).toBe(0.88);
+    });
+  });
+
+  describe('hybridSearch', () => {
+    it('should return empty array when index does not exist', async () => {
+      mockIndicesExists.mockResolvedValue({ body: false });
+
+      const embedding = createMockEmbedding();
+      const results = await service.hybridSearch('sofa', embedding);
+
+      expect(results).toEqual([]);
+    });
+
+    it('should execute both keyword and semantic queries', async () => {
+      mockIndicesExists.mockResolvedValue({ body: true });
+      mockSearch
+        .mockResolvedValueOnce({
+          body: {
+            hits: {
+              hits: [createMockHit('prod_1', 10, 'Comfortable Sofa')],
+            },
+          },
+        })
+        .mockResolvedValueOnce({
+          body: {
+            hits: {
+              hits: [createMockHit('prod_2', 0.9, 'Modern Couch')],
+            },
+          },
+        });
+
+      const embedding = createMockEmbedding();
+      const results = await service.hybridSearch('sofa', embedding);
+
+      expect(mockSearch).toHaveBeenCalledTimes(2);
+      expect(results.length).toBeGreaterThan(0);
+    });
+
+    it('should merge results from both queries', async () => {
+      mockIndicesExists.mockResolvedValue({ body: true });
+      // Keyword results
+      mockSearch.mockResolvedValueOnce({
+        body: {
+          hits: {
+            hits: [createMockHit('prod_1', 10, 'Sofa'), createMockHit('prod_2', 8, 'Chair')],
+          },
+        },
+      });
+      // Semantic results
+      mockSearch.mockResolvedValueOnce({
+        body: {
+          hits: {
+            hits: [createMockHit('prod_1', 0.9, 'Sofa'), createMockHit('prod_3', 0.85, 'Couch')],
+          },
+        },
+      });
+
+      const embedding = createMockEmbedding();
+      const results = await service.hybridSearch('sofa', embedding);
+
+      // Should have 3 unique products
+      const uniqueIds = new Set(results.map((r) => r.document.id));
+      expect(uniqueIds.size).toBe(3);
+    });
+
+    it('should mark results with correct matchType', async () => {
+      mockIndicesExists.mockResolvedValue({ body: true });
+      // Only keyword match
+      mockSearch.mockResolvedValueOnce({
+        body: {
+          hits: {
+            hits: [createMockHit('prod_keyword', 10)],
+          },
+        },
+      });
+      // Only semantic match
+      mockSearch.mockResolvedValueOnce({
+        body: {
+          hits: {
+            hits: [createMockHit('prod_semantic', 0.9)],
+          },
+        },
+      });
+
+      const embedding = createMockEmbedding();
+      const results = await service.hybridSearch('test', embedding);
+
+      const keywordResult = results.find((r) => r.document.id === 'prod_keyword');
+      const semanticResult = results.find((r) => r.document.id === 'prod_semantic');
+
+      expect(keywordResult?.matchType).toBe('exact');
+      expect(semanticResult?.matchType).toBe('semantic');
+    });
+
+    it('should mark hybrid matches when product appears in both results', async () => {
+      mockIndicesExists.mockResolvedValue({ body: true });
+      // Same product in both results
+      mockSearch.mockResolvedValueOnce({
+        body: {
+          hits: {
+            hits: [createMockHit('prod_both', 10)],
+          },
+        },
+      });
+      mockSearch.mockResolvedValueOnce({
+        body: {
+          hits: {
+            hits: [createMockHit('prod_both', 0.9)],
+          },
+        },
+      });
+
+      const embedding = createMockEmbedding();
+      const results = await service.hybridSearch('test', embedding);
+
+      expect(results[0].matchType).toBe('hybrid');
+    });
+
+    it('should respect custom weights', async () => {
+      mockIndicesExists.mockResolvedValue({ body: true });
+      mockSearch
+        .mockResolvedValueOnce({
+          body: { hits: { hits: [createMockHit('prod_1', 10)] } },
+        })
+        .mockResolvedValueOnce({
+          body: { hits: { hits: [createMockHit('prod_2', 0.9)] } },
+        });
+
+      const embedding = createMockEmbedding();
+      await service.hybridSearch('test', embedding, {
+        keywordWeight: 0.3,
+        semanticWeight: 0.7,
+      });
+
+      // Weights are applied internally during score calculation
+      expect(mockSearch).toHaveBeenCalledTimes(2);
+    });
+
+    it('should limit results to specified size', async () => {
+      mockIndicesExists.mockResolvedValue({ body: true });
+      // Return many results
+      const manyHits = Array.from({ length: 30 }, (_, i) => createMockHit(`prod_${i}`, 10 - i * 0.1));
+      mockSearch
+        .mockResolvedValueOnce({ body: { hits: { hits: manyHits } } })
+        .mockResolvedValueOnce({ body: { hits: { hits: [] } } });
+
+      const embedding = createMockEmbedding();
+      const results = await service.hybridSearch('test', embedding, { size: 5 });
+
+      expect(results.length).toBeLessThanOrEqual(5);
+    });
+
+    it('should sort results by combined score descending', async () => {
+      mockIndicesExists.mockResolvedValue({ body: true });
+      mockSearch
+        .mockResolvedValueOnce({
+          body: {
+            hits: {
+              hits: [createMockHit('prod_low', 5), createMockHit('prod_high', 10)],
+            },
+          },
+        })
+        .mockResolvedValueOnce({
+          body: { hits: { hits: [] } },
+        });
+
+      const embedding = createMockEmbedding();
+      const results = await service.hybridSearch('test', embedding);
+
+      // Results should be sorted by score descending
+      for (let i = 0; i < results.length - 1; i++) {
+        expect(results[i].score).toBeGreaterThanOrEqual(results[i + 1].score);
+      }
+    });
+  });
+});

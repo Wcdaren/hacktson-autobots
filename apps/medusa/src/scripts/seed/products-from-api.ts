@@ -1385,8 +1385,8 @@ export const seedProductsFromAPI = ({
     "dimensions": "W150 x D89 x H52cm",
     "warranty": "1-year limited warranty"
 },
-    category_ids: [categories.find(c => c.name === "Outdoor")?.id, categories.find(c => c.name === "Outdoor Furniture Covers")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Outdoor")?.id, categories.find(c => c.name === "Outdoor Furniture Covers")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Sierra Outdoor Collection")?.id,
     images: [
       {
@@ -1448,7 +1448,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 10000,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -1466,8 +1465,8 @@ export const seedProductsFromAPI = ({
     "dimensions": "W232 x D89 x H52cm",
     "warranty": "1-year limited warranty"
 },
-    category_ids: [categories.find(c => c.name === "Outdoor")?.id, categories.find(c => c.name === "Outdoor Furniture Covers")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Outdoor")?.id, categories.find(c => c.name === "Outdoor Furniture Covers")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Sierra Outdoor Collection")?.id,
     images: [
       {
@@ -1529,7 +1528,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 11000,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -1547,8 +1545,8 @@ export const seedProductsFromAPI = ({
     "dimensions": "W100 x D89 x H52cm",
     "warranty": "1-year limited warranty"
 },
-    category_ids: [categories.find(c => c.name === "Outdoor")?.id, categories.find(c => c.name === "Outdoor Furniture Covers")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Outdoor")?.id, categories.find(c => c.name === "Outdoor Furniture Covers")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Sierra Outdoor Collection")?.id,
     images: [
       {
@@ -1610,7 +1608,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 8000,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -1631,8 +1628,8 @@ export const seedProductsFromAPI = ({
     "warranty": "5-year limited warranty",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "TV Consoles")?.id, categories.find(c => c.name === "Storage")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_tv_stands")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_midcenturymodern")?.id, tags.find(t => t.value === "sofa_bundle_complementary_products")?.id, tags.find(t => t.value === "tv_console")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "TV Consoles")?.id, categories.find(c => c.name === "Storage")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_tv_stands")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_midcenturymodern")?.id, tags.find(t => t.value === "sofa_bundle_complementary_products")?.id, tags.find(t => t.value === "tv_console")?.id].filter((id): id is string => Boolean(id)),
     
     images: [
       {
@@ -1718,7 +1715,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 149900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -1755,7 +1751,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 149900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -1786,8 +1781,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 10 years; Fabric 1 year; Foam 2 years",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "3 Seater Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "earth_day")?.id, tags.find(t => t.value === "small_living_room_furniture")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_midcenturymodern")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "rounded_furniture")?.id, tags.find(t => t.value === "all_sofa")?.id, tags.find(t => t.value === "holiday")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "3 Seater Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "earth_day")?.id, tags.find(t => t.value === "small_living_room_furniture")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_midcenturymodern")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "rounded_furniture")?.id, tags.find(t => t.value === "all_sofa")?.id, tags.find(t => t.value === "holiday")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Madison Collection")?.id,
     images: [
       {
@@ -1952,7 +1947,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 119900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -1990,7 +1984,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 107900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -2027,7 +2020,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 119900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -2045,8 +2037,8 @@ export const seedProductsFromAPI = ({
     "dimensions": "W122 x D61 x H36cm",
     "warranty": "1-year limited warranty"
 },
-    category_ids: [categories.find(c => c.name === "Outdoor")?.id, categories.find(c => c.name === "Outdoor Furniture Covers")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Outdoor")?.id, categories.find(c => c.name === "Outdoor Furniture Covers")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Sierra Outdoor Collection")?.id,
     images: [
       {
@@ -2108,7 +2100,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 6000,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -2138,8 +2129,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 5 years; Fabric 1 year; Foam 2 years",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Outdoor")?.id, categories.find(c => c.name === "Outdoor Modular 2-Seater Sofas")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "beige cover fur")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Outdoor")?.id, categories.find(c => c.name === "Outdoor Modular 2-Seater Sofas")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "beige cover fur")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Sierra Outdoor Collection")?.id,
     images: [
       {
@@ -2268,7 +2259,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 109900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -2319,7 +2309,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 119900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -2340,8 +2329,8 @@ export const seedProductsFromAPI = ({
     "warranty": "5-year limited warranty",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "TV Consoles")?.id, categories.find(c => c.name === "Storage")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_tv_stands")?.id, tags.find(t => t.value === "highlight")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "roz_1")?.id, tags.find(t => t.value === "style_modernfarmhouse")?.id, tags.find(t => t.value === "sofa_bundle_complementary_products")?.id, tags.find(t => t.value === "tv_console")?.id, tags.find(t => t.value === "furniture_with_storage")?.id, tags.find(t => t.value === "minimalist_furniture")?.id, tags.find(t => t.value === "new_arrivals")?.id, tags.find(t => t.value === "s1_2023_skus")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "TV Consoles")?.id, categories.find(c => c.name === "Storage")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_tv_stands")?.id, tags.find(t => t.value === "highlight")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "roz_1")?.id, tags.find(t => t.value === "style_modernfarmhouse")?.id, tags.find(t => t.value === "sofa_bundle_complementary_products")?.id, tags.find(t => t.value === "tv_console")?.id, tags.find(t => t.value === "furniture_with_storage")?.id, tags.find(t => t.value === "minimalist_furniture")?.id, tags.find(t => t.value === "new_arrivals")?.id, tags.find(t => t.value === "s1_2023_skus")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Sawyer Collection")?.id,
     images: [
       {
@@ -2419,7 +2408,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 119900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -2440,8 +2428,8 @@ export const seedProductsFromAPI = ({
     "warranty": "5-year limited warranty",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "Extendable Dining Tables")?.id, categories.find(c => c.name === "Tables")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "small_table_furniture")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_indoor_dining_table")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "acacia_wood")?.id, tags.find(t => t.value === "style_midcenturymodern")?.id, tags.find(t => t.value === "rounded_furniture")?.id, tags.find(t => t.value === "all_dining_table")?.id, tags.find(t => t.value === "holiday")?.id, tags.find(t => t.value === "web_ar")?.id, tags.find(t => t.value === "coastal")?.id, tags.find(t => t.value === "modern_farmhouse")?.id, tags.find(t => t.value === "extendable_dining_tables")?.id, tags.find(t => t.value === "midcenturymodern")?.id, tags.find(t => t.value === "spring")?.id, tags.find(t => t.value === "bestselling")?.id, tags.find(t => t.value === "2020withcastlery")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Extendable Dining Tables")?.id, categories.find(c => c.name === "Tables")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "small_table_furniture")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_indoor_dining_table")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "acacia_wood")?.id, tags.find(t => t.value === "style_midcenturymodern")?.id, tags.find(t => t.value === "rounded_furniture")?.id, tags.find(t => t.value === "all_dining_table")?.id, tags.find(t => t.value === "holiday")?.id, tags.find(t => t.value === "web_ar")?.id, tags.find(t => t.value === "coastal")?.id, tags.find(t => t.value === "modern_farmhouse")?.id, tags.find(t => t.value === "extendable_dining_tables")?.id, tags.find(t => t.value === "midcenturymodern")?.id, tags.find(t => t.value === "spring")?.id, tags.find(t => t.value === "bestselling")?.id, tags.find(t => t.value === "2020withcastlery")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Seb Collection")?.id,
     images: [
       {
@@ -2530,7 +2518,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 109900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -2560,8 +2547,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 10 years; Fabric 1 year; Foam 2 years",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "3 Seater Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "small_living_room_furniture")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "all_sofa")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "3 Seater Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "small_living_room_furniture")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "all_sofa")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Dawson Collection")?.id,
     images: [
       {
@@ -2795,7 +2782,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 189800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -2834,7 +2820,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 189800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -2863,7 +2848,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 211800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -2892,7 +2876,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 205800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -2922,7 +2905,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 211800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -2951,7 +2933,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 211800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -2980,7 +2961,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 211800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3009,7 +2989,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 211800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3038,7 +3017,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 211800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3067,7 +3045,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 211800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3096,7 +3073,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 211800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3125,7 +3101,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 211800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3154,7 +3129,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 211800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3183,7 +3157,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 217800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3212,7 +3185,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 217800,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -3243,8 +3215,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 10 years; Leather 1 year; Foam 2 years",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "3 Seater Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "small_living_room_furniture")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_midcenturymodern")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "all_sofa")?.id, tags.find(t => t.value === "icu_list")?.id, tags.find(t => t.value === "holiday")?.id, tags.find(t => t.value === "midcenturymodern")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "3 Seater Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "small_living_room_furniture")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_midcenturymodern")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "all_sofa")?.id, tags.find(t => t.value === "icu_list")?.id, tags.find(t => t.value === "holiday")?.id, tags.find(t => t.value === "midcenturymodern")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Madison Collection")?.id,
     images: [
       {
@@ -3317,7 +3289,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 199900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -3347,8 +3318,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 10 years; Fabric 1 year; Foam 2 years",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Modular Chaises")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id, tags.find(t => t.value === "u_c_shaped_sofa")?.id, tags.find(t => t.value === "all_sofa")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Modular Chaises")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id, tags.find(t => t.value === "u_c_shaped_sofa")?.id, tags.find(t => t.value === "all_sofa")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Jonathan Collection")?.id,
     images: [
       {
@@ -3608,7 +3579,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 94900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3644,7 +3614,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 89900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3680,7 +3649,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 89900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3708,7 +3676,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3736,7 +3703,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 96900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3764,7 +3730,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3792,7 +3757,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3820,7 +3784,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3848,7 +3811,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3876,7 +3838,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3904,7 +3865,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3932,7 +3892,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3960,7 +3919,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -3988,7 +3946,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4016,7 +3973,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4044,7 +4000,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4072,7 +4027,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 102900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4100,7 +4054,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 102900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -4124,8 +4077,8 @@ export const seedProductsFromAPI = ({
     "warranty": "10-year limited warranty",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "Chairs & Benches")?.id, categories.find(c => c.name === "Dining Benches")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id, tags.find(t => t.value === "new_arrivals")?.id, tags.find(t => t.value === "s1_2023_skus")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Chairs & Benches")?.id, categories.find(c => c.name === "Dining Benches")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id, tags.find(t => t.value === "new_arrivals")?.id, tags.find(t => t.value === "s1_2023_skus")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Sloane Collection")?.id,
     images: [
       {
@@ -4268,7 +4221,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 64900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4311,7 +4263,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 74900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4347,7 +4298,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 49900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4383,7 +4333,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 54900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -4413,8 +4362,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 10 years; Fabric 1 year; Foam 2 years",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Modular Chaises")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id, tags.find(t => t.value === "all_sofa")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Modular Chaises")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id, tags.find(t => t.value === "all_sofa")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Jonathan Collection")?.id,
     images: [
       {
@@ -4637,7 +4586,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 94900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4673,7 +4621,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 89900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4701,7 +4648,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4729,7 +4675,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 96900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4757,7 +4702,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4785,7 +4729,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4813,7 +4756,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4841,7 +4783,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4869,7 +4810,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4897,7 +4837,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4925,7 +4864,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4953,7 +4891,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -4981,7 +4918,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -5009,7 +4945,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -5037,7 +4972,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 99900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -5065,7 +4999,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 102900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -5093,7 +5026,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 102900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -5123,8 +5055,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 10 years; Fabric 1 year; Foam 2 years",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Modular Armless Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "style_postmodern")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "minimalist_furniture")?.id, tags.find(t => t.value === "curve_angled_sofa")?.id, tags.find(t => t.value === "all_sofa")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Modular Armless Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "style_postmodern")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "minimalist_furniture")?.id, tags.find(t => t.value === "curve_angled_sofa")?.id, tags.find(t => t.value === "all_sofa")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Auburn Collection")?.id,
     images: [
       {
@@ -5228,7 +5160,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 89900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -5261,7 +5192,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 89900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -5291,8 +5221,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 10 years; Fabric 1 year; Foam 2 years",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "L-Shape Sectional Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "style_postmodern")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "modern_luxe")?.id, tags.find(t => t.value === "minimalist_furniture")?.id, tags.find(t => t.value === "performance_boucle_sofas")?.id, tags.find(t => t.value === "all_sofa")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "L-Shape Sectional Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "style_postmodern")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "modern_luxe")?.id, tags.find(t => t.value === "minimalist_furniture")?.id, tags.find(t => t.value === "performance_boucle_sofas")?.id, tags.find(t => t.value === "all_sofa")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Auburn Collection")?.id,
     images: [
       {
@@ -5396,7 +5326,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 408500,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -5429,7 +5358,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 408500,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -5450,8 +5378,8 @@ export const seedProductsFromAPI = ({
     "warranty": "5-year limited warranty",
     "assembly": "Frame to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "Tables")?.id, categories.find(c => c.name === "Desks")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_midcenturymodern")?.id, tags.find(t => t.value === "new_arrivals")?.id, tags.find(t => t.value === "s1_2023_skus")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Tables")?.id, categories.find(c => c.name === "Desks")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_midcenturymodern")?.id, tags.find(t => t.value === "new_arrivals")?.id, tags.find(t => t.value === "s1_2023_skus")?.id].filter((id): id is string => Boolean(id)),
     
     images: [
       {
@@ -5586,7 +5514,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 89900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -5625,7 +5552,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 87900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -5665,7 +5591,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 92900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -5685,8 +5610,8 @@ export const seedProductsFromAPI = ({
     "warranty": "1-year limited warranty",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Accessories")?.id, categories.find(c => c.name === "Cushions")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "c&c_accessories")?.id, tags.find(t => t.value === "new")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Accessories")?.id, categories.find(c => c.name === "Cushions")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "c&c_accessories")?.id, tags.find(t => t.value === "new")?.id].filter((id): id is string => Boolean(id)),
     
     images: [
       {
@@ -5825,7 +5750,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 4900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -5855,7 +5779,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 4900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -5889,7 +5812,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 5900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -5923,7 +5845,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 5900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -5957,7 +5878,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 5900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -5978,8 +5898,8 @@ export const seedProductsFromAPI = ({
     "warranty": "5-year limited warranty",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "Extendable Dining Tables")?.id, categories.find(c => c.name === "Tables")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "clearance")?.id, tags.find(t => t.value === "sale")?.id, tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_indoor_dining_table")?.id, tags.find(t => t.value === "highlight")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "extendable_dining_tables")?.id, tags.find(t => t.value === "style_modernfarmhouse")?.id, tags.find(t => t.value === "minimalist_furniture")?.id, tags.find(t => t.value === "japandi_furniture")?.id, tags.find(t => t.value === "all_dining_table")?.id, tags.find(t => t.value === "new_arrivals")?.id, tags.find(t => t.value === "s1_2023_skus")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Extendable Dining Tables")?.id, categories.find(c => c.name === "Tables")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "clearance")?.id, tags.find(t => t.value === "sale")?.id, tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_indoor_dining_table")?.id, tags.find(t => t.value === "highlight")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "extendable_dining_tables")?.id, tags.find(t => t.value === "style_modernfarmhouse")?.id, tags.find(t => t.value === "minimalist_furniture")?.id, tags.find(t => t.value === "japandi_furniture")?.id, tags.find(t => t.value === "all_dining_table")?.id, tags.find(t => t.value === "new_arrivals")?.id, tags.find(t => t.value === "s1_2023_skus")?.id].filter((id): id is string => Boolean(id)),
     
     images: [
       {
@@ -6070,7 +5990,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 83900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -6091,8 +6010,8 @@ export const seedProductsFromAPI = ({
     "warranty": "5-year limited warranty",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "Coffee Tables")?.id, categories.find(c => c.name === "Tables")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_coffee_table")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_modernfarmhouse")?.id, tags.find(t => t.value === "sofa_bundle_complementary_products")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Coffee Tables")?.id, categories.find(c => c.name === "Tables")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_coffee_table")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_modernfarmhouse")?.id, tags.find(t => t.value === "sofa_bundle_complementary_products")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Sawyer Collection")?.id,
     images: [
       {
@@ -6165,7 +6084,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 59900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -6195,8 +6113,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 10 years; Leather 1 year; Foam 2 years",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Modular Chaises")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Modular Chaises")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Jonathan Collection")?.id,
     images: [
       {
@@ -6307,7 +6225,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 149900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -6341,7 +6258,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 149900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -6371,8 +6287,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 10 years; Leather 1 year; Foam 2 years",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Modular Chaises")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Modular Chaises")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Jonathan Collection")?.id,
     images: [
       {
@@ -6480,7 +6396,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 149900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -6513,7 +6428,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 149900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -6534,8 +6448,8 @@ export const seedProductsFromAPI = ({
     "warranty": "5-year limited warranty",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "Sideboards")?.id, categories.find(c => c.name === "Storage")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_sideboard")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "acacia_wood")?.id, tags.find(t => t.value === "furniture_with_storage")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_modernfarmhouse")?.id, tags.find(t => t.value === "sofa_bundle_complementary_products")?.id, tags.find(t => t.value === "sideboard")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Sideboards")?.id, categories.find(c => c.name === "Storage")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_sideboard")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "acacia_wood")?.id, tags.find(t => t.value === "furniture_with_storage")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_modernfarmhouse")?.id, tags.find(t => t.value === "sofa_bundle_complementary_products")?.id, tags.find(t => t.value === "sideboard")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Casa Collection")?.id,
     images: [
       {
@@ -6613,7 +6527,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 129900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -6634,8 +6547,8 @@ export const seedProductsFromAPI = ({
     "warranty": "5-year limited warranty",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "TV Consoles")?.id, categories.find(c => c.name === "Storage")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "s3'25 products")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "new")?.id, tags.find(t => t.value === "storewide_sale")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "TV Consoles")?.id, categories.find(c => c.name === "Storage")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "s3'25 products")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "new")?.id, tags.find(t => t.value === "storewide_sale")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Casa Collection")?.id,
     images: [
       {
@@ -6744,7 +6657,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 89900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -6780,7 +6692,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 119900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -6801,8 +6712,8 @@ export const seedProductsFromAPI = ({
     "warranty": "5-year limited warranty",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "Tables")?.id, categories.find(c => c.name === "Console Tables")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "acacia_wood")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_modernfarmhouse")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Tables")?.id, categories.find(c => c.name === "Console Tables")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "acacia_wood")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_modernfarmhouse")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Casa Collection")?.id,
     images: [
       {
@@ -6875,7 +6786,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 59900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -6896,8 +6806,8 @@ export const seedProductsFromAPI = ({
     "warranty": "5-year limited warranty",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Bedside Tables")?.id, categories.find(c => c.name === "Storage")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "le.anne")?.id, tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "small_bedroom_furniture")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "trade_side_tables")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "curved_furniture")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "rounded_furniture")?.id, tags.find(t => t.value === "all_bedside_side_table")?.id, tags.find(t => t.value === "all products")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Bedside Tables")?.id, categories.find(c => c.name === "Storage")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "le.anne")?.id, tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "small_bedroom_furniture")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "trade_side_tables")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "curved_furniture")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "rounded_furniture")?.id, tags.find(t => t.value === "all_bedside_side_table")?.id, tags.find(t => t.value === "all products")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Crescent Collection")?.id,
     images: [
       {
@@ -6982,7 +6892,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 59900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -7005,8 +6914,8 @@ export const seedProductsFromAPI = ({
     "warranty": "10-year limited warranty",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Chairs & Benches")?.id, categories.find(c => c.name === "Dining Chairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_indoor_dining_chair")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_midcenturymodern")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Chairs & Benches")?.id, categories.find(c => c.name === "Dining Chairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_indoor_dining_chair")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_midcenturymodern")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Austen Collection")?.id,
     images: [
       {
@@ -7087,7 +6996,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 34900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -7117,8 +7025,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 10 years; Leather 1 year; Foam 2 years",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Extended 3 Seater Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "all_sofa")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Extended 3 Seater Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "all_sofa")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Jonathan Collection")?.id,
     images: [
       {
@@ -7316,7 +7224,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 374700,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -7352,7 +7259,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 374700,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -7388,7 +7294,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 374700,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -7424,7 +7329,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 374700,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -7454,8 +7358,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 10 years; Fabric 1 year; Foam 2 years",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "3 Seater Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "sale")?.id, tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "small_living_room_furniture")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "cosy_furniture")?.id, tags.find(t => t.value === "all_sofa")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "3 Seater Sofas")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "sale")?.id, tags.find(t => t.value === "bestsellers")?.id, tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "small_living_room_furniture")?.id, tags.find(t => t.value === "small_space_furniture")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "style_moderncontemporary")?.id, tags.find(t => t.value === "s3_event (do not use)")?.id, tags.find(t => t.value === "cosy_furniture")?.id, tags.find(t => t.value === "all_sofa")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Hamilton Collection")?.id,
     images: [
       {
@@ -7619,7 +7523,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 143900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -7655,7 +7558,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 159900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -7691,7 +7593,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 159900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -7722,7 +7623,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 183900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -7753,7 +7653,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 178900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -7784,7 +7683,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 183900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -7815,7 +7713,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 178900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -7846,7 +7743,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 178900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -7877,7 +7773,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 178900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -7908,7 +7803,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 178900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -7939,8 +7833,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 10 years; Fabric 1 year; Foam 2 years",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "Modular Chaises")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "s3'25 products")?.id, tags.find(t => t.value === "new")?.id, tags.find(t => t.value === "storewide_sale")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Modular Chaises")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "s3'25 products")?.id, tags.find(t => t.value === "new")?.id, tags.find(t => t.value === "storewide_sale")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Mori Collection")?.id,
     images: [
       {
@@ -8128,7 +8022,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 149900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -8166,7 +8059,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 149900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -8203,7 +8095,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 149900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -8241,7 +8132,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 149900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -8272,8 +8162,8 @@ export const seedProductsFromAPI = ({
     "warranty": "Frame 10 years; Fabric 1 year; Foam 2 years",
     "assembly": "Legs to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "Ottomans")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_ottoman")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_modernfarmhouse")?.id, tags.find(t => t.value === "sofa_bundle_complementary_products")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Ottomans")?.id, categories.find(c => c.name === "Sofa & Armchairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_ottoman")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "modular_sofas")?.id, tags.find(t => t.value === "s3_event_tag")?.id, tags.find(t => t.value === "style_modernfarmhouse")?.id, tags.find(t => t.value === "sofa_bundle_complementary_products")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Mori Collection")?.id,
     images: [
       {
@@ -8416,7 +8306,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 66900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -8451,7 +8340,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 66900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -8486,7 +8374,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 66900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -8519,7 +8406,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 66900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -8553,7 +8439,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 66900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -8575,8 +8460,8 @@ export const seedProductsFromAPI = ({
     "warranty": "10-year limited warranty",
     "assembly": "Legs and seat to be fitted"
 },
-    category_ids: [categories.find(c => c.name === "Chairs & Benches")?.id, categories.find(c => c.name === "Dining Chairs")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_indoor_dining_chair")?.id, tags.find(t => t.value === "all products")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Chairs & Benches")?.id, categories.find(c => c.name === "Dining Chairs")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "all furniture excluding accessories\t")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "match & save")?.id, tags.find(t => t.value === "all_indoor_dining_chair")?.id, tags.find(t => t.value === "all products")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Vincent Collection")?.id,
     images: [
       {
@@ -8656,7 +8541,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 27900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -8676,8 +8560,8 @@ export const seedProductsFromAPI = ({
     "warranty": "1-year limited warranty",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Cereal Bowls")?.id, categories.find(c => c.name === "Tableware")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "c&c_accessories")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all_accessories")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "homeware launch")?.id, tags.find(t => t.value === "match & save")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Cereal Bowls")?.id, categories.find(c => c.name === "Tableware")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "c&c_accessories")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all_accessories")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "homeware launch")?.id, tags.find(t => t.value === "match & save")?.id].filter((id): id is string => Boolean(id)),
     collection_id: collections.find(c => c.title === "Grace Collection")?.id,
     images: [
       {
@@ -8739,7 +8623,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 5900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -8766,7 +8649,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 5900,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -8786,8 +8668,8 @@ export const seedProductsFromAPI = ({
     "warranty": "1-year limited warranty",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Salad Plates")?.id, categories.find(c => c.name === "Tableware")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "c&c_accessories")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all_accessories")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "homeware launch")?.id, tags.find(t => t.value === "match & save")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Salad Plates")?.id, categories.find(c => c.name === "Tableware")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "c&c_accessories")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all_accessories")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "homeware launch")?.id, tags.find(t => t.value === "match & save")?.id].filter((id): id is string => Boolean(id)),
     
     images: [
       {
@@ -8866,7 +8748,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 5500,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -8894,7 +8775,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 5500,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -8922,7 +8802,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 5500,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -8942,8 +8821,8 @@ export const seedProductsFromAPI = ({
     "warranty": "1-year limited warranty",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Serving Bowls")?.id, categories.find(c => c.name === "Tableware")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "c&c_accessories")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all_accessories")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "homeware launch")?.id, tags.find(t => t.value === "match & save")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Serving Bowls")?.id, categories.find(c => c.name === "Tableware")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "c&c_accessories")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all_accessories")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "homeware launch")?.id, tags.find(t => t.value === "match & save")?.id].filter((id): id is string => Boolean(id)),
     
     images: [
       {
@@ -9009,7 +8888,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 6500,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -9037,7 +8915,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 6500,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }
@@ -9057,8 +8934,8 @@ export const seedProductsFromAPI = ({
     "warranty": "1-year limited warranty",
     "assembly": "Fully assembled"
 },
-    category_ids: [categories.find(c => c.name === "Cereal Bowls")?.id, categories.find(c => c.name === "Tableware")?.id].filter(Boolean),
-    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "c&c_accessories")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all_accessories")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "homeware launch")?.id, tags.find(t => t.value === "match & save")?.id].filter(Boolean),
+    category_ids: [categories.find(c => c.name === "Cereal Bowls")?.id, categories.find(c => c.name === "Tableware")?.id].filter((id): id is string => Boolean(id)),
+    tag_ids: [tags.find(t => t.value === "storewide_sale")?.id, tags.find(t => t.value === "c&c_accessories")?.id, tags.find(t => t.value === "storewide exclude beige covers")?.id, tags.find(t => t.value === "all_accessories")?.id, tags.find(t => t.value === "all products")?.id, tags.find(t => t.value === "gss event storewide sale excluding gwp")?.id, tags.find(t => t.value === "all product excluding customisation")?.id, tags.find(t => t.value === "homeware launch")?.id, tags.find(t => t.value === "match & save")?.id].filter((id): id is string => Boolean(id)),
     
     images: [
       {
@@ -9137,7 +9014,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 5500,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -9165,7 +9041,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 5500,
             currency_code: 'usd',
-            region_id,
           },
         ],
       },
@@ -9193,7 +9068,6 @@ export const seedProductsFromAPI = ({
           {
             amount: 5500,
             currency_code: 'usd',
-            region_id,
           },
         ],
       }

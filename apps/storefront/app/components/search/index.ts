@@ -7,7 +7,7 @@
  *
  * @example
  * ```tsx
- * import { SearchBox, SearchFilters, ActiveFilters, MobileFilterDrawer, SearchResults } from "@app/components/search"
+ * import { SearchBox, SearchFilters, ActiveFilters, MobileFilterDrawer, SearchResults, ImageSearchUpload } from "@app/components/search"
  * ```
  */
 export * from './SearchBox';
@@ -15,3 +15,4 @@ export * from './SearchFilters';
 export * from './ActiveFilters';
 export * from './MobileFilterDrawer';
 export * from './SearchResults';
+export * from './ImageSearchUpload';

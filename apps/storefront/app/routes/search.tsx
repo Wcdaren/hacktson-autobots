@@ -1,11 +1,11 @@
 /**
- * Products Index Route
+ * Search Route
  *
- * Displays the product listing page with search, filtering, and sorting capabilities.
+ * Dedicated search page with full search, filtering, and sorting capabilities.
  * Uses Elastic Search UI with OpenSearch backend for full-text search and faceted filtering.
  * Supports semantic search and image-based product search.
  *
- * @module app/routes/products._index
+ * @module app/routes/search
  */
 import { Breadcrumbs } from '@app/components/common/breadcrumbs';
 import { Container } from '@app/components/common/container';
@@ -20,9 +20,10 @@ import {
 import { useImageSearchState } from '@app/providers/search-provider';
 import { useImageSearch } from '@app/hooks/useImageSearch';
 import HomeIcon from '@heroicons/react/24/solid/HomeIcon';
+import MagnifyingGlassIcon from '@heroicons/react/24/outline/MagnifyingGlassIcon';
 
 /**
- * Breadcrumb configuration for the products page
+ * Breadcrumb configuration for the search page
  */
 const breadcrumbs = [
   {
@@ -35,15 +36,15 @@ const breadcrumbs = [
     url: `/`,
   },
   {
-    label: 'All Products',
+    label: 'Search',
   },
 ];
 
 /**
- * Products Index Route Component
+ * Search Route Component
  *
- * Renders the product listing page with:
- * - Search box for full-text product search with image search support
+ * Renders the dedicated search page with:
+ * - Large search box for full-text product search with image search support
  * - Active filters display showing current filter state
  * - Desktop sidebar with category, collection, and price filters
  * - Mobile filter drawer for responsive filter access
@@ -53,7 +54,7 @@ const breadcrumbs = [
  * All search functionality is powered by Elastic Search UI connected to OpenSearch.
  * Filter state is synchronized with URL parameters for shareable links.
  */
-export default function ProductsIndexRoute() {
+export default function SearchRoute() {
   const { imageSearch, setImageSearch, clearImageSearch } = useImageSearchState();
   const {
     results: imageResults,
@@ -85,11 +86,23 @@ export default function ProductsIndexRoute() {
         <Breadcrumbs breadcrumbs={breadcrumbs} />
       </div>
 
+      {/* Search Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <MagnifyingGlassIcon className="h-8 w-8 text-gray-400" />
+          <h1 className="text-2xl font-semibold text-gray-900">Search Products</h1>
+        </div>
+        <p className="text-gray-600">
+          Find exactly what you're looking for with our powerful search. Try semantic search or upload an image to find
+          similar products.
+        </p>
+      </div>
+
       {/* Search Box with Image Search */}
       <div className="mb-6">
         <SearchBox
-          placeholder="Search products..."
-          className="max-w-xl"
+          placeholder="Search for furniture, decor, and more..."
+          className="max-w-2xl"
           enableImageSearch={true}
           onImageSearch={handleImageSearch}
         />
@@ -160,7 +173,7 @@ export default function ProductsIndexRoute() {
       <div className="flex gap-8">
         {/* Desktop Sidebar with Filters - hidden on mobile */}
         <aside className="hidden w-64 flex-shrink-0 lg:block">
-          <div className="sticky top-4">
+          <div className="sticky top-24">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">Filters</h2>
             <SearchFilters showTags={true} showMetadataFacets={true} />
           </div>

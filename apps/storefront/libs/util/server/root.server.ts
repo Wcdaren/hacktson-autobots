@@ -63,6 +63,7 @@ export const getRootLoader = async ({ request }: LoaderFunctionArgs) => {
         SENTRY_DSN: config.SENTRY_DSN,
         SENTRY_ENVIRONMENT: config.SENTRY_ENVIRONMENT,
         EVENT_LOGGING: config.EVENT_LOGGING,
+        MEDUSA_PUBLISHABLE_KEY: config.MEDUSA_PUBLISHABLE_KEY,
       },
       customer,
       regions,
