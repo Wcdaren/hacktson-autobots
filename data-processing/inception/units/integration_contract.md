@@ -284,12 +284,13 @@ def get_opensearch_client() -> OpenSearch:
 
 **Method Signature**:
 ```python
-def get_text_results(user_search_string: str) -> dict:
+def get_text_results(user_search_string: str, selected_tag: str = None) -> dict:
     """
-    Perform semantic text search.
+    Perform semantic text search with optional tag refinement.
     
     Args:
         user_search_string: Natural language search query
+        selected_tag: Optional tag to refine search (from related_tags)
         
     Returns:
         {
@@ -324,6 +325,13 @@ def get_text_results(user_search_string: str) -> dict:
                     # ... all other configured fields
                 }
             ],
+            "related_tags": [  # NEW: Feature 6
+                {
+                    "tag": str,
+                    "type": "category" | "price_range" | "material" | "style" | "color",
+                    "count": int (optional)
+                }
+            ],
             "search_metadata": {
                 "query": str,
                 "search_mode": "knn" | "bm25" | "hybrid",
@@ -334,7 +342,11 @@ def get_text_results(user_search_string: str) -> dict:
                     "size": [str],
                     "category": [str]
                 },
-                "response_time_ms": int
+                "response_time_ms": int,
+                "llm_fallback_used": bool,  # NEW: Feature 5
+                "original_query": str (if fallback used),  # NEW: Feature 5
+                "enhanced_query": str (if fallback used),  # NEW: Feature 5
+                "tags_generated": bool  # NEW: Feature 6
             }
         }
         
@@ -352,7 +364,8 @@ Content-Type: application/json
 
 Request:
 {
-    "query": "grey sofa under $1000"
+    "query": "grey sofa under $1000",
+    "selected_tag": "Leather"  // Optional: refine by tag
 }
 
 Response: (same as method return value)
@@ -371,7 +384,7 @@ def get_image_match_result(image_base64: str) -> dict:
         image_base64: Base64 encoded image (JPG or PNG)
         
     Returns:
-        Same structure as get_text_results()
+        Same structure as get_text_results() including related_tags
         
     Raises:
         ValueError: If image format is invalid
@@ -391,6 +404,125 @@ Request:
 }
 
 Response: (same as method return value)
+```
+
+#### 4.3 LLM Fallback Intent Extraction API (NEW - Feature 5)
+**Purpose**: Extract meaningful intents from abstract queries using LLM
+
+**Method Signature**:
+```python
+def extract_intent_with_llm(query: str, catalog_knowledge: dict) -> dict:
+    """
+    Use Claude LLM to extract concrete product attributes from abstract query.
+    
+    Args:
+        query: Original user search query (e.g., "modern yet royal table")
+        catalog_knowledge: Dict containing valid categories, materials, colors, styles
+        
+    Returns:
+        {
+            "status": "success" | "error",
+            "original_query": str,
+            "enhanced_query": str,  # Reformulated query with concrete terms
+            "extracted_intents": [
+                {
+                    "abstract_term": str,  # e.g., "royal"
+                    "concrete_attributes": [str]  # e.g., ["ornate", "elegant", "traditional"]
+                }
+            ],
+            "suggested_filters": {
+                "categories": [str],
+                "materials": [str],
+                "colors": [str],
+                "styles": [str]
+            },
+            "cached": bool,  # Whether result was from cache
+            "processing_time_ms": int
+        }
+        
+    Raises:
+        RuntimeError: If LLM service unavailable
+    """
+    pass
+```
+
+**Internal Use**: Called by `get_text_results()` when similarity score is below threshold
+
+#### 4.4 Related Tags Generation API (NEW - Feature 6)
+**Purpose**: Generate personalized search tags for a query
+
+**Method Signature**:
+```python
+def generate_related_tags(query: str, search_results: list = None) -> dict:
+    """
+    Generate personalized, clickable search tags based on query.
+    
+    Args:
+        query: User search query
+        search_results: Optional list of search results to inform tag generation
+        
+    Returns:
+        {
+            "status": "success" | "error",
+            "query": str,
+            "tags": [
+                {
+                    "tag": str,  # e.g., "Dining Chairs"
+                    "type": "category" | "price_range" | "material" | "style" | "color",
+                    "count": int (optional),  # Products matching this tag
+                    "relevance_score": float  # How relevant to query (0-1)
+                }
+            ],
+            "cached": bool,
+            "processing_time_ms": int
+        }
+        
+    Raises:
+        RuntimeError: If LLM service unavailable
+    """
+    pass
+```
+
+**Internal Use**: Called by `get_text_results()` to generate related_tags in response
+
+#### 4.5 Tag-Based Search Refinement API (NEW - Feature 6)
+**Purpose**: Refine search results based on selected tag
+
+**Method Signature**:
+```python
+def refine_search_with_tag(original_query: str, selected_tag: str, tag_type: str) -> dict:
+    """
+    Refine search by applying selected tag as filter or query enhancement.
+    
+    Args:
+        original_query: Original user search query
+        selected_tag: Tag selected by user (e.g., "Leather")
+        tag_type: Type of tag ("category", "price_range", "material", "style", "color")
+        
+    Returns:
+        Same structure as get_text_results()
+        
+    Behavior:
+        - price_range tags: Apply as price filter (e.g., "Under $1,000" → price_max: 1000)
+        - category tags: Filter by category
+        - material/style/color tags: Add to query or apply as filter
+    """
+    pass
+```
+
+**HTTP Endpoint**:
+```
+POST /api/v1/search/refine
+Content-Type: application/json
+
+Request:
+{
+    "query": "chair",
+    "selected_tag": "Leather",
+    "tag_type": "material"
+}
+
+Response: (same as get_text_results)
 ```
 
 ### Consumed Interfaces
@@ -494,8 +626,24 @@ max_results = Config.get("search_query.max_results", default=50)
 3. Unit 4 extracts filters from query
 4. Unit 4 calls Unit 2: embed_text_query(query)
 5. Unit 4 performs search on Unit 3's OpenSearch indices
-6. Unit 4 ranks and formats results
-7. Unit 4 returns JSON response to frontend
+6. Unit 4 evaluates top result similarity score
+7. IF score < threshold (Feature 5 - LLM Fallback):
+   a. Return status: "no results found, falling back to LLM model"
+   b. Call extract_intent_with_llm(query, catalog_knowledge)
+   c. Re-execute search with enhanced query
+8. Unit 4 calls generate_related_tags(query) (Feature 6)
+9. Unit 4 ranks and formats results with related_tags
+10. Unit 4 returns JSON response to frontend
+```
+
+### Text Search with Tag Refinement Flow (NEW - Feature 6)
+```
+1. Frontend calls Unit 4: get_text_results(query, selected_tag)
+2. Unit 4 validates query and tag
+3. Unit 4 applies tag as filter or query enhancement
+4. Unit 4 performs search with refined parameters
+5. Unit 4 generates new related_tags for refined search
+6. Unit 4 returns JSON response with updated results and tags
 ```
 
 ### Image Search Request Flow
@@ -504,8 +652,23 @@ max_results = Config.get("search_query.max_results", default=50)
 2. Unit 4 validates image format
 3. Unit 4 calls Unit 2: embed_image_query(image)
 4. Unit 4 performs KNN search on Unit 3's image index
-5. Unit 4 ranks and formats results
-6. Unit 4 returns JSON response to frontend
+5. Unit 4 generates related_tags based on top results (Feature 6)
+6. Unit 4 ranks and formats results
+7. Unit 4 returns JSON response to frontend
+```
+
+### LLM Fallback Flow (NEW - Feature 5)
+```
+1. Initial search returns low similarity scores (< threshold)
+2. Unit 4 returns interim status to frontend
+3. Unit 4 checks LLM response cache
+4. IF cache miss:
+   a. Call Claude LLM via Bedrock with query + catalog knowledge
+   b. Extract concrete attributes from abstract terms
+   c. Cache LLM response
+5. Reformulate query with extracted intents
+6. Re-execute search with enhanced query
+7. Return results with llm_fallback_used: true in metadata
 ```
 
 ---
@@ -537,6 +700,9 @@ All units should return errors in consistent format:
 - `INVALID_CONFIG`: Configuration validation failed
 - `EMBEDDING_FAILED`: Failed to generate embedding
 - `INDEX_FAILED`: Failed to index data
+- `LLM_FALLBACK_FAILED`: LLM fallback intent extraction failed (NEW - Feature 5)
+- `TAG_GENERATION_FAILED`: Related tag generation failed (NEW - Feature 6)
+- `INVALID_TAG`: Selected tag is not valid (NEW - Feature 6)
 
 ---
 

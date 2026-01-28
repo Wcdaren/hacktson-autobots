@@ -34,6 +34,20 @@ The Search Query Service is the core search engine that provides the two main AP
 ### From Epic 8: Performance and Optimization
 - **US-8.1**: Search Performance Optimization
 
+### From Epic 10: LLM Fallback for Intent Extraction (NEW - Feature 5)
+- **US-10.1**: Low-Quality Result Detection
+- **US-10.2**: LLM Intent Extraction using Claude
+- **US-10.3**: Two-Part Response Flow for Fallback
+- **US-10.4**: LLM Response Caching
+
+### From Epic 11: Related Search Tags (NEW - Feature 6)
+- **US-11.1**: Related Tag Generation using LLM
+- **US-11.2**: Tag Validation Against Product Catalog
+- **US-11.3**: Tag Count and Type Configuration
+- **US-11.4**: Tag Response Format
+- **US-11.5**: Tag Click Search Refinement
+- **US-11.6**: Tag Response Caching
+
 ## Acceptance Criteria Summary
 - Text search completes in <3 seconds
 - Image search completes in <3 seconds
@@ -43,6 +57,13 @@ The Search Query Service is the core search engine that provides the two main AP
 - Handles errors with appropriate messages
 - Returns configurable fields in JSON format
 - Comprehensive logging
+- **NEW (Feature 5)**: LLM fallback triggers when similarity score < threshold
+- **NEW (Feature 5)**: Two-part response flow for fallback scenario
+- **NEW (Feature 5)**: LLM responses are cached
+- **NEW (Feature 6)**: Related tags generated for each search
+- **NEW (Feature 6)**: Tags validated against product catalog
+- **NEW (Feature 6)**: Min 3, Max 10 tags returned (configurable)
+- **NEW (Feature 6)**: Tag click refines search results
 
 ## Technical Components
 - Query processing engine
@@ -54,12 +75,20 @@ The Search Query Service is the core search engine that provides the two main AP
 - Response formatter
 - Error handler
 - Performance monitor
+- **NEW (Feature 5)**: LLM Fallback Service (Claude via Bedrock)
+- **NEW (Feature 5)**: Intent Extraction Module
+- **NEW (Feature 5)**: LLM Response Cache
+- **NEW (Feature 6)**: Related Tags Generator (LLM-based)
+- **NEW (Feature 6)**: Catalog Tag Validator
+- **NEW (Feature 6)**: Tag Response Cache
 
 ## Dependencies
 - **Upstream**: Search Index Service (Unit 3) - indexed data in OpenSearch
 - **Upstream**: Embedding Generation Service (Unit 2) - for query embedding
 - **Downstream**: Frontend/API consumers
-- **External**: AWS Bedrock (for query embedding), AWS OpenSearch
+- **External**: AWS Bedrock (for query embedding)
+- **External**: AWS Bedrock Claude (for LLM fallback and tag generation) - NEW
+- **External**: AWS OpenSearch
 
 ## Interfaces
 
@@ -67,12 +96,13 @@ The Search Query Service is the core search engine that provides the two main AP
 
 #### Text Search API
 ```python
-def get_text_results(user_search_string: str) -> dict:
+def get_text_results(user_search_string: str, selected_tag: str = None) -> dict:
     """
     Perform semantic text search on products.
     
     Args:
         user_search_string: Natural language search query
+        selected_tag: Optional tag to refine search (from related_tags)
         
     Returns:
         dict: {
@@ -100,11 +130,22 @@ def get_text_results(user_search_string: str) -> dict:
                     # ... all other configured fields
                 }
             ],
+            "related_tags": [  # NEW - Feature 6
+                {
+                    "tag": str,
+                    "type": "category" | "price_range" | "material" | "style" | "color",
+                    "count": int (optional)
+                }
+            ],
             "search_metadata": {
                 "query": str,
                 "search_mode": "knn" | "bm25" | "hybrid",
                 "filters_applied": {...},
-                "response_time_ms": int
+                "response_time_ms": int,
+                "llm_fallback_used": bool,  # NEW - Feature 5
+                "original_query": str (if fallback),  # NEW - Feature 5
+                "enhanced_query": str (if fallback),  # NEW - Feature 5
+                "tags_generated": bool  # NEW - Feature 6
             }
         }
     
@@ -124,11 +165,83 @@ def get_image_match_result(image_base64: str) -> dict:
         image_base64: Base64 encoded image (JPG or PNG)
         
     Returns:
-        dict: Same structure as get_text_results
+        dict: Same structure as get_text_results (including related_tags)
         
     Raises:
         ValueError: If image format is invalid
         RuntimeError: If search service is unavailable
+    """
+```
+
+#### LLM Intent Extraction API (NEW - Feature 5)
+```python
+def extract_intent_with_llm(query: str, catalog_knowledge: dict) -> dict:
+    """
+    Use Claude LLM to extract concrete product attributes from abstract query.
+    
+    Args:
+        query: Original user search query (e.g., "modern yet royal table")
+        catalog_knowledge: Dict containing valid categories, materials, colors, styles
+        
+    Returns:
+        dict: {
+            "status": "success" | "error",
+            "original_query": str,
+            "enhanced_query": str,
+            "extracted_intents": [
+                {
+                    "abstract_term": str,
+                    "concrete_attributes": [str]
+                }
+            ],
+            "suggested_filters": {...},
+            "cached": bool,
+            "processing_time_ms": int
+        }
+    """
+```
+
+#### Related Tags Generation API (NEW - Feature 6)
+```python
+def generate_related_tags(query: str, search_results: list = None) -> dict:
+    """
+    Generate personalized, clickable search tags based on query.
+    
+    Args:
+        query: User search query
+        search_results: Optional list of search results to inform tag generation
+        
+    Returns:
+        dict: {
+            "status": "success" | "error",
+            "query": str,
+            "tags": [
+                {
+                    "tag": str,
+                    "type": "category" | "price_range" | "material" | "style" | "color",
+                    "count": int (optional),
+                    "relevance_score": float
+                }
+            ],
+            "cached": bool,
+            "processing_time_ms": int
+        }
+    """
+```
+
+#### Tag-Based Search Refinement API (NEW - Feature 6)
+```python
+def refine_search_with_tag(original_query: str, selected_tag: str, tag_type: str) -> dict:
+    """
+    Refine search by applying selected tag as filter or query enhancement.
+    
+    Args:
+        original_query: Original user search query
+        selected_tag: Tag selected by user
+        tag_type: Type of tag
+        
+    Returns:
+        dict: Same structure as get_text_results
     """
 ```
 
@@ -191,6 +304,49 @@ search_query:
   cache_embeddings: true
   cache_ttl_seconds: 3600
   parallel_search: true  # For hybrid mode
+
+# NEW - Feature 5: LLM Fallback Configuration
+llm_fallback:
+  enabled: true
+  model_id: "anthropic.claude-3-sonnet-20240229-v1:0"  # Configurable Claude model
+  similarity_threshold: 0.3  # Trigger fallback when top score is below this
+  cache_enabled: true
+  cache_ttl_seconds: 3600  # 1 hour cache for LLM responses
+  max_retries: 2
+  timeout_seconds: 30
+  
+  # Intent mapping knowledge base
+  intent_mappings:
+    royal: ["ornate", "gold accents", "traditional", "vintage", "elegant"]
+    cozy: ["soft fabric", "plush", "comfortable", "warm colors"]
+    minimalist: ["clean lines", "simple", "modern", "neutral colors"]
+    rustic: ["wood", "natural", "farmhouse", "distressed"]
+    industrial: ["metal", "iron", "raw", "urban"]
+
+# NEW - Feature 6: Related Tags Configuration
+related_tags:
+  enabled: true
+  min_tags: 3
+  max_tags: 10
+  llm_model_id: "anthropic.claude-3-sonnet-20240229-v1:0"
+  cache_enabled: true
+  cache_ttl_seconds: 1800  # 30 minutes
+  
+  # Tag types to generate
+  tag_types:
+    - categories
+    - price_ranges
+    - materials
+    - styles
+    - colors
+  
+  # Valid catalog values for tag validation
+  catalog_values:
+    categories: ["Sofas", "Tables", "Chairs", "Beds", "Desks", "Dining Chairs", "Armchairs", "Recliners", "Sectionals", "Coffee Tables", "Side Tables", "Console Tables", "Bar Stools", "Office Chairs", "King Beds", "Queen Beds", "Nightstands", "Dressers", "Wardrobes", "Bookcases", "TV Units", "Ottomans", "Benches"]
+    price_ranges: ["Under $500", "Under $1,000", "Under $1,500", "Under $2,000", "$500-$1,000", "$1,000-$2,000", "$2,000-$3,000", "Over $3,000"]
+    materials: ["Leather", "Fabric", "Wood", "Metal", "Glass", "Marble", "Rattan", "Velvet", "Linen", "Cotton", "Walnut", "Oak", "Acacia", "Teak"]
+    styles: ["Modern", "Traditional", "Minimalist", "Scandinavian", "Industrial", "Mid-Century", "Contemporary", "Rustic", "Bohemian", "Coastal", "Farmhouse", "Art Deco", "Swivel", "Reclining", "Extendable", "Modular"]
+    colors: ["Brown", "Grey", "White", "Black", "Beige", "Blue", "Green", "Navy", "Cream", "Tan", "Charcoal", "Natural", "Walnut", "Oak"]
 ```
 
 ### Filter Extraction Examples

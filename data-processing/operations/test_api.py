@@ -49,6 +49,16 @@ def test_text_search(api_endpoint: str):
                     print(f"  Search mode: {result['search_metadata']['search_mode']}")
                     print(f"  Filters: {result['search_metadata']['filters_applied']}")
                     
+                    # Feature 5: LLM Fallback info
+                    if result['search_metadata'].get('llm_fallback_used'):
+                        print(f"  LLM Fallback: Yes")
+                        print(f"  Enhanced query: {result['search_metadata'].get('enhanced_query')}")
+                    
+                    # Feature 6: Related tags
+                    if result.get('related_tags'):
+                        tags = [t['tag'] for t in result['related_tags'][:5]]
+                        print(f"  Related tags: {', '.join(tags)}")
+                    
                     if result['results']:
                         top_result = result['results'][0]
                         print(f"  Top result: {top_result['product_name']} (${top_result['price']})")
@@ -205,6 +215,158 @@ def test_performance(api_endpoint: str, num_requests: int = 10):
             print("  ⚠ Performance target not met (>3s)")
 
 
+def test_llm_fallback(api_endpoint: str):
+    """Test Feature 5: LLM Fallback for abstract queries."""
+    print("\n" + "=" * 60)
+    print("Testing Feature 5: LLM Fallback")
+    print("=" * 60)
+    
+    # Abstract queries that should trigger LLM fallback
+    abstract_queries = [
+        "royal yet modern dining table",
+        "cozy and inviting sofa",
+        "minimalist zen bedroom furniture",
+        "rustic farmhouse charm table"
+    ]
+    
+    for query in abstract_queries:
+        print(f"\nAbstract Query: {query}")
+        
+        start_time = time.time()
+        
+        try:
+            response = requests.post(
+                f"{api_endpoint}/search/text",
+                headers={'Content-Type': 'application/json'},
+                json={'query': query},
+                timeout=15  # Allow more time for LLM
+            )
+            
+            elapsed_time = (time.time() - start_time) * 1000
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                if result['status'] == 'success':
+                    metadata = result.get('search_metadata', {})
+                    llm_used = metadata.get('llm_fallback_used', False)
+                    enhanced = metadata.get('enhanced_query')
+                    
+                    print(f"  Response time: {elapsed_time:.0f}ms")
+                    print(f"  LLM Fallback triggered: {'Yes' if llm_used else 'No'}")
+                    if enhanced:
+                        print(f"  Enhanced query: {enhanced}")
+                    print(f"  Results: {result['total_results']}")
+                    
+                    if llm_used:
+                        print("  ✓ LLM fallback working correctly")
+                else:
+                    print(f"  ✗ Error: {result.get('message')}")
+            else:
+                print(f"  ✗ HTTP {response.status_code}")
+                
+        except Exception as e:
+            print(f"  ✗ Exception: {str(e)}")
+
+
+def test_related_tags(api_endpoint: str):
+    """Test Feature 6: Related Tags generation."""
+    print("\n" + "=" * 60)
+    print("Testing Feature 6: Related Tags")
+    print("=" * 60)
+    
+    test_queries = [
+        "brown leather chair",
+        "modern sofa",
+        "wooden dining table"
+    ]
+    
+    for query in test_queries:
+        print(f"\nQuery: {query}")
+        
+        try:
+            response = requests.post(
+                f"{api_endpoint}/search/text",
+                headers={'Content-Type': 'application/json'},
+                json={'query': query},
+                timeout=15
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                if result['status'] == 'success':
+                    tags = result.get('related_tags', [])
+                    
+                    if tags:
+                        print(f"  ✓ Generated {len(tags)} related tags:")
+                        for tag in tags[:5]:
+                            print(f"    - {tag['tag']} ({tag['type']})")
+                    else:
+                        print("  ⚠ No related tags generated")
+                else:
+                    print(f"  ✗ Error: {result.get('message')}")
+            else:
+                print(f"  ✗ HTTP {response.status_code}")
+                
+        except Exception as e:
+            print(f"  ✗ Exception: {str(e)}")
+
+
+def test_tag_refinement(api_endpoint: str):
+    """Test Feature 6: Tag-based search refinement."""
+    print("\n" + "=" * 60)
+    print("Testing Feature 6: Tag Refinement")
+    print("=" * 60)
+    
+    # First, get tags from a search
+    original_query = "leather chair"
+    print(f"\nOriginal query: {original_query}")
+    
+    try:
+        response = requests.post(
+            f"{api_endpoint}/search/text",
+            headers={'Content-Type': 'application/json'},
+            json={'query': original_query},
+            timeout=15
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            tags = result.get('related_tags', [])
+            
+            if tags:
+                # Pick a tag to refine with
+                selected_tag = tags[0]
+                print(f"  Selected tag: {selected_tag['tag']} ({selected_tag['type']})")
+                
+                # Test refinement endpoint
+                refine_response = requests.post(
+                    f"{api_endpoint}/search/refine",
+                    headers={'Content-Type': 'application/json'},
+                    json={
+                        'original_query': original_query,
+                        'tag': selected_tag['tag'],
+                        'tag_type': selected_tag['type']
+                    },
+                    timeout=15
+                )
+                
+                if refine_response.status_code == 200:
+                    refine_result = refine_response.json()
+                    if refine_result['status'] == 'success':
+                        print(f"  ✓ Refinement successful: {refine_result['total_results']} results")
+                    else:
+                        print(f"  ✗ Refinement error: {refine_result.get('message')}")
+                else:
+                    print(f"  ✗ Refinement HTTP {refine_response.status_code}")
+            else:
+                print("  ⚠ No tags to test refinement with")
+                
+    except Exception as e:
+        print(f"  ✗ Exception: {str(e)}")
+
+
 def main():
     """Main test runner."""
     if len(sys.argv) < 2:
@@ -227,6 +389,9 @@ def main():
     test_text_search(api_endpoint)
     test_image_search(api_endpoint, image_path)
     test_error_handling(api_endpoint)
+    test_llm_fallback(api_endpoint)  # Feature 5
+    test_related_tags(api_endpoint)  # Feature 6
+    test_tag_refinement(api_endpoint)  # Feature 6
     test_performance(api_endpoint, num_requests=5)
     
     print("\n" + "=" * 60)

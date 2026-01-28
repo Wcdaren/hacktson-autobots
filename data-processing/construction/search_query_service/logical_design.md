@@ -65,24 +65,34 @@ search_query_service/
 │   │   ├── query_types.py
 │   │   ├── filters.py
 │   │   ├── scores.py
-│   │   └── product_data.py
+│   │   ├── product_data.py
+│   │   ├── intents.py             # NEW - Feature 5: ExtractedIntents, CatalogKnowledge
+│   │   └── tags.py                # NEW - Feature 6: SearchTag, TagType, CatalogValues
 │   ├── services/
 │   │   ├── __init__.py
 │   │   ├── filter_extraction_service.py
 │   │   ├── embedding_service.py
 │   │   ├── search_strategy_service.py
 │   │   ├── rrf_service.py
-│   │   └── ranking_service.py
+│   │   ├── ranking_service.py
+│   │   ├── intent_extraction_service.py  # NEW - Feature 5
+│   │   ├── related_tags_service.py       # NEW - Feature 6
+│   │   └── tag_refinement_service.py     # NEW - Feature 6
 │   ├── repositories/
 │   │   ├── __init__.py
 │   │   ├── opensearch_repository.py  # Interface
-│   │   └── search_result_repository.py  # Interface
+│   │   ├── search_result_repository.py  # Interface
+│   │   ├── llm_response_cache.py     # NEW - Feature 5
+│   │   ├── tag_cache.py              # NEW - Feature 6
+│   │   └── catalog_tag_repository.py # NEW - Feature 6
 │   ├── events/
 │   │   ├── __init__.py
 │   │   └── search_events.py
 │   └── policies/
 │       ├── __init__.py
-│       └── search_policies.py
+│       ├── search_policies.py
+│       ├── llm_fallback_policy.py    # NEW - Feature 5
+│       └── tag_generation_policy.py  # NEW - Feature 6
 ├── infrastructure/
 │   ├── __init__.py
 │   ├── opensearch/
@@ -93,10 +103,13 @@ search_query_service/
 │   ├── bedrock/
 │   │   ├── __init__.py
 │   │   ├── bedrock_client.py
-│   │   └── embedding_service_impl.py
+│   │   ├── embedding_service_impl.py
+│   │   └── claude_llm_adapter.py     # NEW - Feature 5 & 6
 │   ├── cache/
 │   │   ├── __init__.py
-│   │   └── result_cache.py
+│   │   ├── result_cache.py
+│   │   ├── llm_cache_impl.py         # NEW - Feature 5
+│   │   └── tag_cache_impl.py         # NEW - Feature 6
 │   └── config/
 │       ├── __init__.py
 │       └── config_loader.py

@@ -449,3 +449,194 @@ Backend search system for an e-commerce furniture website that enables semantic 
 - Advanced analytics and monitoring dashboards
 - Auto-scaling infrastructure
 - Production-grade high availability setup
+
+---
+
+## Epic 10: LLM Fallback for Intent Extraction (Feature 5)
+
+### US-10.1: Low-Quality Result Detection
+**As a** Search Engineer  
+**I want to** detect when search results have low similarity scores  
+**So that** the system can trigger an LLM fallback to improve results
+
+**Acceptance Criteria:**
+- System evaluates the top result's similarity score after initial search
+- If top score is below configurable threshold (default: 0.3), fallback is triggered
+- Threshold is configurable via YAML config file
+- Detection happens before returning results to user
+- System logs when fallback is triggered with query and score details
+- Fallback can be enabled/disabled via configuration
+
+---
+
+### US-10.2: LLM Intent Extraction using Claude
+**As a** Search Engineer  
+**I want to** use Claude LLM (via Bedrock) to extract meaningful intents from abstract queries  
+**So that** queries like "modern yet royal table" can be mapped to concrete product attributes
+
+**Acceptance Criteria:**
+- System connects to AWS Bedrock Claude model
+- Claude model ID is configurable via YAML (default: anthropic.claude-3-sonnet)
+- LLM receives the original query and catalog knowledge (categories, materials, colors, styles)
+- LLM extracts concrete product attributes from abstract terms:
+  - "royal" → "ornate", "gold accents", "traditional", "vintage", "elegant"
+  - "cozy" → "soft fabric", "plush", "comfortable", "warm colors"
+  - "minimalist" → "clean lines", "simple", "modern", "neutral colors"
+- Extracted intents are used to reformulate the search query
+- LLM response is parsed and validated
+- Error handling for LLM service unavailability
+- Timeout is configurable (default: 30 seconds)
+- Max retries is configurable (default: 2)
+
+---
+
+### US-10.3: Two-Part Response Flow for Fallback
+**As a** Frontend Developer  
+**I want to** receive a status message when LLM fallback is being used  
+**So that** I can show appropriate loading/status to the user
+
+**Acceptance Criteria:**
+- When fallback is triggered, first response is:
+  ```json
+  {"status": "no results found, falling back to LLM model to retrieve results"}
+  ```
+- Second response contains actual search results from LLM-enhanced query
+- Response includes metadata indicating LLM fallback was used:
+  ```json
+  {"search_metadata": {"llm_fallback_used": true, "original_query": "...", "enhanced_query": "..."}}
+  ```
+- If LLM fallback also returns no results, return standard "no results found" error
+- Response time for fallback scenario is acceptable (additional 1-2 seconds)
+
+---
+
+### US-10.4: LLM Response Caching
+**As a** System Administrator  
+**I want to** cache LLM responses for similar queries  
+**So that** repeated queries don't incur additional LLM costs and latency
+
+**Acceptance Criteria:**
+- LLM responses are cached with the original query as key
+- Cache TTL is configurable via YAML (default: 1 hour / 3600 seconds)
+- Cache can be enabled/disabled via configuration
+- Cache hit/miss is logged for monitoring
+- Similar queries (normalized) share cached responses
+- Cache is cleared on system restart (in-memory for demo)
+- Cache size is bounded to prevent memory issues
+
+---
+
+## Epic 11: Related Search Tags - Google Shopping Style (Feature 6)
+
+### US-11.1: Related Tag Generation using LLM
+**As a** Search Engineer  
+**I want to** generate personalized search tags based on the user's query  
+**So that** users can discover and refine their search like Google Shopping
+
+**Acceptance Criteria:**
+- System uses Claude LLM to generate relevant tags for each query
+- Tags are personalized to the query context:
+  - Query: "brown leather chair" → Tags: "Swivel", "Dining Chairs", "Recliners", "Armchairs", "Under $1,000"
+  - Query: "modern sofa" → Tags: "Sectional", "2-Seater", "3-Seater", "Fabric", "Leather", "Grey"
+- LLM receives query and catalog knowledge to generate relevant suggestions
+- Generated tags are diverse (mix of categories, prices, materials, styles, colors)
+- Tag generation happens in parallel with search (not blocking)
+- LLM model ID is configurable via YAML
+
+---
+
+### US-11.2: Tag Validation Against Product Catalog
+**As a** Search Engineer  
+**I want to** filter generated tags to only show those that exist in the product catalog  
+**So that** users don't click on tags that return no results
+
+**Acceptance Criteria:**
+- All generated tags are validated against catalog values in config
+- Valid catalog values include:
+  - Categories: Sofas, Tables, Chairs, Beds, Desks, etc.
+  - Price Ranges: Under $500, Under $1,000, $1,000-$2,000, etc.
+  - Materials: Leather, Fabric, Wood, Metal, Glass, etc.
+  - Styles: Modern, Traditional, Minimalist, Scandinavian, etc.
+  - Colors: Brown, Grey, White, Black, Beige, etc.
+- Invalid tags (not in catalog) are removed from response
+- Catalog values are configurable via YAML
+- Validation is case-insensitive
+- At least minimum number of valid tags must remain (configurable, default: 3)
+
+---
+
+### US-11.3: Tag Count and Type Configuration
+**As a** System Administrator  
+**I want to** configure the number and types of tags returned  
+**So that** I can tune the user experience
+
+**Acceptance Criteria:**
+- Minimum tags: configurable (default: 3)
+- Maximum tags: configurable (default: 10)
+- Tag types to include are configurable:
+  - categories
+  - price_ranges
+  - materials
+  - styles
+  - colors
+- If fewer than minimum valid tags, system attempts to generate more
+- Tags are balanced across types (not all from one category)
+- Configuration is via YAML file
+
+---
+
+### US-11.4: Tag Response Format
+**As a** Frontend Developer  
+**I want to** receive related tags in a structured format  
+**So that** I can display clickable tag buttons to users
+
+**Acceptance Criteria:**
+- Tags are included in search response under `related_tags` array
+- Each tag includes:
+  - `tag`: Display text (e.g., "Dining Chairs")
+  - `type`: Tag type (e.g., "category", "price_range", "material", "style", "color")
+  - `count`: Number of products matching this tag (optional, for display)
+- Example response format:
+  ```json
+  {
+    "related_tags": [
+      {"tag": "Dining Chairs", "type": "category", "count": 45},
+      {"tag": "Under $1,000", "type": "price_range", "count": 89},
+      {"tag": "Leather", "type": "material", "count": 34}
+    ]
+  }
+  ```
+- Tags are ordered by relevance to query
+- Response includes `tags_generated: true/false` in metadata
+
+---
+
+### US-11.5: Tag Click Search Refinement
+**As a** Frontend Developer  
+**I want to** refine search results when a user clicks on a tag  
+**So that** users can easily narrow down their search
+
+**Acceptance Criteria:**
+- Clicking a tag updates the search with that tag as a filter/refinement
+- Original query is preserved and combined with tag
+- Example: Query "chair" + Click "Leather" → Search for "leather chair"
+- Price range tags apply as filters (e.g., "Under $1,000" → price_max: 1000)
+- Category tags filter by category
+- Material/Style/Color tags are added to query or applied as filters
+- New search returns updated results and new related tags
+- API supports passing selected tag as parameter
+
+---
+
+### US-11.6: Tag Response Caching
+**As a** System Administrator  
+**I want to** cache generated tags for queries  
+**So that** repeated queries don't incur additional LLM costs
+
+**Acceptance Criteria:**
+- Generated tags are cached with query as key
+- Cache TTL is configurable via YAML (default: 30 minutes / 1800 seconds)
+- Cache can be enabled/disabled via configuration
+- Cache is separate from LLM fallback cache
+- Cache hit/miss is logged for monitoring
+- Cache is cleared on system restart (in-memory for demo)

@@ -266,9 +266,99 @@ class SearchMetadata:
     filters_applied: SearchFilters
     response_time_ms: int
     total_results: int
+    llm_fallback_used: bool = False  # NEW - Feature 5
+    original_query: Optional[str] = None  # NEW - Feature 5
+    enhanced_query: Optional[str] = None  # NEW - Feature 5
+    tags_generated: bool = False  # NEW - Feature 6
     
     Methods:
     - to_dict() -> dict
+```
+
+#### ExtractedIntents (NEW - Feature 5)
+```python
+class ExtractedIntents:
+    original_query: str
+    abstract_terms: List[str]  # e.g., ["royal", "modern"]
+    concrete_attributes: Dict[str, List[str]]  # e.g., {"royal": ["ornate", "elegant"]}
+    suggested_filters: SearchFilters
+    enhanced_query: str
+    
+    Invariants:
+    - At least one abstract term must be identified
+    - Concrete attributes must be from catalog
+    
+    Methods:
+    - to_dict() -> dict
+    - get_enhanced_query() -> str
+```
+
+#### CatalogKnowledge (NEW - Feature 5)
+```python
+class CatalogKnowledge:
+    categories: List[str]
+    materials: List[str]
+    colors: List[str]
+    styles: List[str]
+    price_ranges: List[str]
+    
+    Methods:
+    - to_prompt_context() -> str  # Format for LLM prompt
+    - validate_attribute(attr: str) -> bool
+```
+
+#### SearchTag (NEW - Feature 6)
+```python
+class SearchTag:
+    tag: str  # Display text, e.g., "Dining Chairs"
+    tag_type: TagType  # CATEGORY | PRICE_RANGE | MATERIAL | STYLE | COLOR
+    count: Optional[int]  # Number of products matching this tag
+    relevance_score: float  # How relevant to query (0-1)
+    
+    Invariants:
+    - Tag must not be empty
+    - Tag type must be valid
+    - Relevance score between 0 and 1
+    
+    Methods:
+    - to_dict() -> dict
+    - __eq__()
+```
+
+#### TagType (NEW - Feature 6)
+```python
+class TagType(Enum):
+    CATEGORY = "category"
+    PRICE_RANGE = "price_range"
+    MATERIAL = "material"
+    STYLE = "style"
+    COLOR = "color"
+```
+
+#### CatalogValues (NEW - Feature 6)
+```python
+class CatalogValues:
+    categories: List[str]
+    price_ranges: List[str]
+    materials: List[str]
+    styles: List[str]
+    colors: List[str]
+    
+    Methods:
+    - is_valid_tag(tag: str, tag_type: TagType) -> bool
+    - get_all_values() -> Dict[TagType, List[str]]
+```
+
+#### RefinedQuery (NEW - Feature 6)
+```python
+class RefinedQuery:
+    original_query: str
+    selected_tag: SearchTag
+    enhanced_query: str
+    additional_filters: SearchFilters
+    
+    Methods:
+    - to_search_query() -> SearchQuery
 ```
 
 ---
@@ -412,6 +502,200 @@ class ResultRankingService:
         pass
 ```
 
+#### IntentExtractionService (NEW - Feature 5)
+**Purpose**: Extract meaningful intents from abstract queries using LLM
+
+**Responsibilities**:
+- Detect when search results have low quality (below similarity threshold)
+- Use Claude LLM to extract concrete product attributes from abstract terms
+- Map abstract terms to catalog-valid attributes
+- Cache LLM responses for performance
+
+**Methods**:
+```python
+class IntentExtractionService:
+    def should_trigger_fallback(top_score: float, threshold: float) -> bool:
+        """Determine if LLM fallback should be triggered"""
+        pass
+    
+    def extract_intents(
+        query: str,
+        catalog_knowledge: CatalogKnowledge
+    ) -> ExtractedIntents:
+        """
+        Use Claude LLM to extract concrete attributes from abstract query.
+        
+        Examples:
+        - "royal table" -> ["ornate", "elegant", "traditional", "gold accents"]
+        - "cozy sofa" -> ["soft fabric", "plush", "comfortable", "warm colors"]
+        """
+        pass
+    
+    def enhance_query(
+        original_query: str,
+        extracted_intents: ExtractedIntents
+    ) -> str:
+        """Reformulate query with extracted concrete attributes"""
+        pass
+```
+
+**Domain Logic**:
+- Maintains intent mapping knowledge base (abstract -> concrete)
+- Uses Claude LLM via Bedrock for intelligent extraction
+- Validates extracted attributes against catalog
+- Caches responses to reduce LLM calls
+
+#### RelatedTagsService (NEW - Feature 6)
+**Purpose**: Generate personalized, clickable search tags using two-tier approach
+
+**Responsibilities**:
+- **Tier 1 (Primary)**: Lookup tags from pre-computed index (instant, <1ms)
+- **Tier 2 (Fallback)**: Generate tags using LLM for unique queries (1-2s)
+- Validate tags against product catalog
+- Ensure tag diversity (categories, prices, materials, styles, colors)
+- Cache LLM-generated tags for future use
+
+**Methods**:
+```python
+class RelatedTagsService:
+    def get_tags(
+        query: str,
+        search_results: List[ProductMatch] = None,
+        catalog_values: CatalogValues = None
+    ) -> List[SearchTag]:
+        """
+        Get personalized tags for query using two-tier approach.
+        
+        Strategy:
+        1. Try pre-computed tag index first (instant)
+        2. If not found, use LLM generation (1-2s)
+        3. Cache LLM results for future use
+        
+        Performance:
+        - 95% of queries: <1ms (pre-computed index)
+        - 5% of queries: 1-2s (LLM generation)
+        
+        Examples:
+        - "brown leather chair" -> ["Swivel", "Dining Chairs", "Recliners", "Under $1,000", "Armchairs"]
+        - "modern sofa" -> ["Sectional", "2-Seater", "3-Seater", "Fabric", "Leather", "Grey"]
+        """
+        pass
+    
+    def should_use_llm(query: str) -> bool:
+        """Determine if LLM is needed or pre-computed index can be used"""
+        pass
+    
+    def generate_tags_with_llm(
+        query: str,
+        search_results: List[ProductMatch] = None,
+        catalog_values: CatalogValues = None
+    ) -> List[SearchTag]:
+        """Generate tags using LLM for unique queries"""
+        pass
+    
+    def validate_tags(
+        tags: List[SearchTag],
+        catalog_values: CatalogValues
+    ) -> List[SearchTag]:
+        """Filter tags to only include those that exist in catalog"""
+        pass
+    
+    def balance_tag_types(
+        tags: List[SearchTag],
+        min_tags: int,
+        max_tags: int
+    ) -> List[SearchTag]:
+        """Ensure balanced mix of tag types"""
+        pass
+```
+
+**Domain Logic**:
+- **Primary Strategy**: Uses pre-computed tag index for 95% of queries (instant)
+- **Fallback Strategy**: Uses Claude LLM for unique/complex queries (5%)
+- Validates all tags against catalog values
+- Balances tag types for diversity
+- Caches LLM responses to reduce future calls
+- Pre-computed index built during data ingestion phase
+
+#### TagIndexService (NEW - Feature 6)
+**Purpose**: Pre-compute and index tags for instant retrieval
+
+**Responsibilities**:
+- Build tag index during data ingestion phase
+- Map query terms to tags (inverted index)
+- Map categories to related tags
+- Store common query patterns
+- Provide instant tag lookup (<1ms)
+- Export/import index for persistence
+
+**Methods**:
+```python
+class TagIndexService:
+    def build_index(catalog_values: CatalogValues) -> None:
+        """
+        Build pre-computed tag index from catalog.
+        Called during data ingestion phase.
+        """
+        pass
+    
+    def get_tags_for_query(query: str, max_tags: int = 10) -> List[SearchTag]:
+        """
+        Get pre-computed tags for query (instant lookup).
+        Returns tags in <1ms for common queries.
+        """
+        pass
+    
+    def has_tags_for_query(query: str) -> bool:
+        """Check if query exists in pre-computed index"""
+        pass
+    
+    def add_query_pattern(query: str, tags: List[SearchTag]) -> None:
+        """Add new query pattern to index (from LLM results)"""
+        pass
+    
+    def export_index(filepath: str) -> None:
+        """Export index to JSON for persistence"""
+        pass
+    
+    def load_index(filepath: str) -> None:
+        """Load index from JSON"""
+        pass
+```
+
+**Domain Logic**:
+- Pre-computes tags for all product categories
+- Builds inverted index: query_term → tags
+- Stores common query patterns (sofa, chair, table, etc.)
+- Provides O(1) lookup time for indexed queries
+- Grows over time as LLM-generated tags are added
+- Persisted to disk for fast startup
+
+#### TagRefinementService (NEW - Feature 6)
+**Purpose**: Refine search based on selected tag
+
+**Responsibilities**:
+- Apply tag as filter or query enhancement
+- Handle different tag types appropriately
+- Maintain original query context
+
+**Methods**:
+```python
+class TagRefinementService:
+    def refine_search(
+        original_query: str,
+        selected_tag: SearchTag
+    ) -> RefinedQuery:
+        """
+        Apply tag to refine search.
+        
+        Behavior by tag type:
+        - price_range: Apply as price filter
+        - category: Filter by category
+        - material/style/color: Add to query or apply as filter
+        """
+        pass
+```
+
 ---
 
 ### 4. Repositories
@@ -479,6 +763,87 @@ class OpenSearchRepository:
         pass
 ```
 
+#### LLMResponseCache (NEW - Feature 5)
+**Purpose**: Cache LLM responses for intent extraction
+
+**Methods**:
+```python
+class LLMResponseCache:
+    def get(query: str) -> Optional[ExtractedIntents]:
+        """Get cached intent extraction result"""
+        pass
+    
+    def set(query: str, intents: ExtractedIntents, ttl_seconds: int) -> None:
+        """Cache intent extraction result"""
+        pass
+    
+    def invalidate(query: str) -> None:
+        """Invalidate cached result"""
+        pass
+    
+    def clear() -> None:
+        """Clear all cached results"""
+        pass
+```
+
+#### TagCache (NEW - Feature 6)
+**Purpose**: Cache generated tags for queries
+
+**Methods**:
+```python
+class TagCache:
+    def get(query: str) -> Optional[List[SearchTag]]:
+        """Get cached tags for query"""
+        pass
+    
+    def set(query: str, tags: List[SearchTag], ttl_seconds: int) -> None:
+        """Cache tags for query"""
+        pass
+    
+    def invalidate(query: str) -> None:
+        """Invalidate cached tags"""
+        pass
+    
+    def clear() -> None:
+        """Clear all cached tags"""
+        pass
+```
+
+#### CatalogTagRepository (NEW - Feature 6)
+**Purpose**: Validate tags against product catalog
+
+**Methods**:
+```python
+class CatalogTagRepository:
+    def get_valid_categories() -> List[str]:
+        """Get all valid category tags"""
+        pass
+    
+    def get_valid_materials() -> List[str]:
+        """Get all valid material tags"""
+        pass
+    
+    def get_valid_colors() -> List[str]:
+        """Get all valid color tags"""
+        pass
+    
+    def get_valid_styles() -> List[str]:
+        """Get all valid style tags"""
+        pass
+    
+    def get_valid_price_ranges() -> List[str]:
+        """Get all valid price range tags"""
+        pass
+    
+    def is_valid_tag(tag: str, tag_type: TagType) -> bool:
+        """Check if tag is valid for given type"""
+        pass
+    
+    def get_product_count_for_tag(tag: str, tag_type: TagType) -> int:
+        """Get number of products matching tag"""
+        pass
+```
+
 ---
 
 ### 5. Domain Events
@@ -507,6 +872,61 @@ class SearchFailed:
     query_id: QueryId
     error_code: str
     error_message: str
+    timestamp: DateTime
+```
+
+#### LLMFallbackTriggered (NEW - Feature 5)
+```python
+class LLMFallbackTriggered:
+    query_id: QueryId
+    original_query: str
+    top_score: float
+    threshold: float
+    timestamp: DateTime
+```
+
+#### IntentsExtracted (NEW - Feature 5)
+```python
+class IntentsExtracted:
+    query_id: QueryId
+    original_query: str
+    enhanced_query: str
+    abstract_terms: List[str]
+    concrete_attributes: Dict[str, List[str]]
+    cached: bool
+    processing_time_ms: int
+    timestamp: DateTime
+```
+
+#### LLMFallbackFailed (NEW - Feature 5)
+```python
+class LLMFallbackFailed:
+    query_id: QueryId
+    original_query: str
+    error_code: str
+    error_message: str
+    timestamp: DateTime
+```
+
+#### RelatedTagsGenerated (NEW - Feature 6)
+```python
+class RelatedTagsGenerated:
+    query_id: QueryId
+    query: str
+    tags: List[SearchTag]
+    tag_count: int
+    cached: bool
+    processing_time_ms: int
+    timestamp: DateTime
+```
+
+#### TagSearchRefined (NEW - Feature 6)
+```python
+class TagSearchRefined:
+    query_id: QueryId
+    original_query: str
+    selected_tag: SearchTag
+    refined_query: str
     timestamp: DateTime
 ```
 
@@ -554,6 +974,74 @@ class ResultLimitPolicy:
 class FilterValidationPolicy:
     def validate(filters: SearchFilters) -> bool:
         """Validate filter consistency"""
+        pass
+```
+
+#### LLMFallbackPolicy (NEW - Feature 5)
+**Purpose**: Determine when to trigger LLM fallback
+
+**Rule**: Trigger fallback when top result similarity score is below threshold
+
+**Implementation**:
+```python
+class LLMFallbackPolicy:
+    similarity_threshold: float = 0.3  # Configurable
+    enabled: bool = True
+    
+    def should_trigger(top_score: float) -> bool:
+        """Determine if LLM fallback should be triggered"""
+        return self.enabled and top_score < self.similarity_threshold
+    
+    def get_threshold() -> float:
+        """Get current threshold value"""
+        return self.similarity_threshold
+```
+
+#### TagGenerationPolicy (NEW - Feature 6)
+**Purpose**: Control tag generation behavior
+
+**Rule**: Generate between min and max tags, validate against catalog
+
+**Implementation**:
+```python
+class TagGenerationPolicy:
+    min_tags: int = 3
+    max_tags: int = 10
+    enabled: bool = True
+    
+    def validate_tag_count(tags: List[SearchTag]) -> bool:
+        """Ensure tag count is within limits"""
+        return self.min_tags <= len(tags) <= self.max_tags
+    
+    def filter_valid_tags(
+        tags: List[SearchTag],
+        catalog_values: CatalogValues
+    ) -> List[SearchTag]:
+        """Filter to only valid catalog tags"""
+        pass
+    
+    def balance_tag_types(tags: List[SearchTag]) -> List[SearchTag]:
+        """Ensure balanced mix of tag types"""
+        pass
+```
+
+#### TagValidationPolicy (NEW - Feature 6)
+**Purpose**: Validate tags against product catalog
+
+**Rule**: Only return tags that exist in the product catalog
+
+**Implementation**:
+```python
+class TagValidationPolicy:
+    def is_valid(tag: SearchTag, catalog_values: CatalogValues) -> bool:
+        """Check if tag exists in catalog"""
+        pass
+    
+    def filter_invalid(
+        tags: List[SearchTag],
+        catalog_values: CatalogValues
+    ) -> List[SearchTag]:
+        """Remove invalid tags"""
         pass
 ```
 
@@ -644,9 +1132,17 @@ class FilterValidationPolicy:
 3. FilterExtractionService extracts filters from text
 4. EmbeddingService generates QueryEmbedding
 5. SearchStrategyService executes search (KNN/BM25/Hybrid)
-6. ResultRankingService ranks and limits results
-7. Create SearchResult aggregate with ProductMatches
-8. Return SearchResult as JSON
+6. Evaluate top result score against LLMFallbackPolicy threshold
+7. IF score < threshold (Feature 5 - LLM Fallback):
+   a. Emit LLMFallbackTriggered event
+   b. IntentExtractionService extracts intents using Claude LLM
+   c. Enhance query with extracted concrete attributes
+   d. Re-execute search with enhanced query
+   e. Emit IntentsExtracted event
+8. ResultRankingService ranks and limits results
+9. RelatedTagsService generates personalized tags (Feature 6)
+10. Create SearchResult aggregate with ProductMatches and RelatedTags
+11. Return SearchResult as JSON with related_tags
 ```
 
 ### Image Search Workflow
@@ -657,8 +1153,9 @@ class FilterValidationPolicy:
 4. EmbeddingService generates QueryEmbedding
 5. SearchStrategyService executes KNN search on image index
 6. ResultRankingService ranks and limits results
-7. Create SearchResult aggregate with ProductMatches
-8. Return SearchResult as JSON
+7. RelatedTagsService generates tags based on top results (Feature 6)
+8. Create SearchResult aggregate with ProductMatches and RelatedTags
+9. Return SearchResult as JSON with related_tags
 ```
 
 ### Hybrid Search Workflow
@@ -669,8 +1166,58 @@ class FilterValidationPolicy:
 4. Execute KNN search → List A
 5. Execute BM25 search → List B
 6. ReciprocalRankFusionService fuses A and B
-7. Rank and limit results
-8. Return SearchResult
+7. Evaluate top score against LLMFallbackPolicy
+8. IF fallback triggered, enhance query and re-search
+9. Rank and limit results
+10. Generate related tags
+11. Return SearchResult with tags
+```
+
+### LLM Fallback Workflow (NEW - Feature 5)
+```
+1. Initial search returns low similarity scores (< threshold)
+2. LLMFallbackPolicy.should_trigger() returns true
+3. Emit LLMFallbackTriggered event
+4. Check LLMResponseCache for cached result
+5. IF cache miss:
+   a. Build prompt with query + CatalogKnowledge
+   b. Call Claude LLM via Bedrock
+   c. Parse LLM response to extract intents
+   d. Create ExtractedIntents value object
+   e. Cache result in LLMResponseCache
+   f. Emit IntentsExtracted event
+6. IntentExtractionService.enhance_query() reformulates query
+7. Re-execute search with enhanced query
+8. Return results with llm_fallback_used: true in metadata
+```
+
+### Related Tags Generation Workflow (NEW - Feature 6)
+```
+1. Search completes with results
+2. Check TagCache for cached tags
+3. IF cache miss:
+   a. Build prompt with query + search results context
+   b. Call Claude LLM via Bedrock
+   c. Parse LLM response to extract suggested tags
+   d. TagValidationPolicy filters invalid tags
+   e. TagGenerationPolicy balances tag types
+   f. Cache result in TagCache
+   g. Emit RelatedTagsGenerated event
+4. Return tags with search results
+```
+
+### Tag Click Refinement Workflow (NEW - Feature 6)
+```
+1. User clicks on a tag (e.g., "Leather")
+2. Create RefinedQuery with original query + selected tag
+3. TagRefinementService determines refinement strategy:
+   - price_range: Apply as price filter
+   - category: Filter by category
+   - material/style/color: Add to query text
+4. Execute refined search
+5. Generate new related tags for refined context
+6. Emit TagSearchRefined event
+7. Return refined results with new tags
 ```
 
 ---
@@ -711,6 +1258,39 @@ class OpenSearchAdapter:
         pass
 ```
 
+#### Claude LLM Adapter (NEW - Feature 5 & 6)
+```python
+class ClaudeLLMAdapter:
+    """Translates between domain and Bedrock Claude API"""
+    
+    def build_intent_extraction_prompt(
+        query: str,
+        catalog_knowledge: CatalogKnowledge
+    ) -> str:
+        """Build prompt for intent extraction"""
+        pass
+    
+    def build_tag_generation_prompt(
+        query: str,
+        search_results: List[ProductMatch],
+        catalog_values: CatalogValues
+    ) -> str:
+        """Build prompt for tag generation"""
+        pass
+    
+    def invoke_claude(prompt: str, model_id: str) -> str:
+        """Call Claude via Bedrock and return response"""
+        pass
+    
+    def parse_intent_response(response: str) -> ExtractedIntents:
+        """Parse Claude response to ExtractedIntents"""
+        pass
+    
+    def parse_tag_response(response: str) -> List[SearchTag]:
+        """Parse Claude response to SearchTags"""
+        pass
+```
+
 ---
 
 ## Summary
@@ -722,3 +1302,7 @@ This domain model provides:
 - **Separation of concerns** between domain and infrastructure
 - **Testability** through well-defined interfaces
 - **Flexibility** to change search strategies without affecting domain model
+- **LLM Integration** (Feature 5) for intelligent intent extraction from abstract queries
+- **Related Tags** (Feature 6) for Google Shopping-style tag suggestions
+- **Caching** for LLM responses and generated tags to optimize performance
+- **Extensibility** for adding new tag types or intent mappings

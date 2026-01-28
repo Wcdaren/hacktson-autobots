@@ -1,6 +1,7 @@
 """
 Unit 4: Search Query Service (Production)
 Main search APIs integrated with Bedrock and OpenSearch.
+Includes Feature 5 (LLM Fallback) and Feature 6 (Related Tags).
 """
 
 import boto3
@@ -9,8 +10,11 @@ import json
 import logging
 import time
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import base64
+
+from .llm_service import ClaudeLLMService
+from .tag_index_service import TagIndexService
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +57,12 @@ class SearchQueryService:
         self.image_index = opensearch_config['indices']['image_index']
         self.text_model_id = config['aws']['bedrock']['text_model_id']
         self.image_model_id = config['aws']['bedrock']['image_model_id']
+        
+        # Initialize LLM service for Features 5 & 6
+        self.llm_service = ClaudeLLMService(config)
+        
+        # Initialize Tag Index Service for Feature 6 (pre-computed tags)
+        self.tag_index = TagIndexService(config)
     
     def extract_filters(self, query: str) -> Dict:
         """Extract filters from natural language query."""
@@ -262,6 +272,7 @@ class SearchQueryService:
     def get_text_results(self, user_search_string: str) -> Dict:
         """
         Main API: Get text search results.
+        Includes Feature 5 (LLM Fallback) and Feature 6 (Related Tags).
         Returns JSON response with search results.
         """
         start_time = time.time()
@@ -282,69 +293,49 @@ class SearchQueryService:
             search_mode = self.config['search_query']['default_search_mode']
             max_results = self.config['search_query']['max_results']
             
-            # Perform search based on mode
-            if search_mode == 'knn':
-                query_embedding = self.generate_query_embedding(user_search_string)
-                results = self.knn_search(query_embedding, filters, max_results)
-                
-            elif search_mode == 'bm25':
-                results = self.bm25_search(user_search_string, filters, max_results)
-                
-            elif search_mode == 'hybrid':
-                # Generate embedding for KNN
-                query_embedding = self.generate_query_embedding(user_search_string)
-                
-                # Perform both searches
-                knn_results = self.knn_search(query_embedding, filters, max_results)
-                bm25_results = self.bm25_search(user_search_string, filters, max_results)
-                
-                # Combine with RRF
-                rrf_k = self.config['search_query']['rrf']['k']
-                results = self.reciprocal_rank_fusion(knn_results, bm25_results, rrf_k)
-                results = results[:max_results]
+            # Perform initial search
+            results, top_score = self._perform_search(
+                user_search_string, filters, search_mode, max_results
+            )
             
-            else:
-                raise ValueError(f"Unknown search mode: {search_mode}")
+            # Feature 5: LLM Fallback for low-quality results
+            llm_fallback_used = False
+            enhanced_query = None
+            original_query = user_search_string
             
-            # Check if no results
+            if self.llm_service.should_trigger_fallback(top_score):
+                logger.info(f"Triggering LLM fallback for '{user_search_string}' (score: {top_score})")
+                
+                # Extract intents using Claude
+                intents = self.llm_service.extract_intents(user_search_string)
+                enhanced_query = intents.get('enhanced_query', user_search_string)
+                
+                if enhanced_query != user_search_string:
+                    # Re-search with enhanced query
+                    enhanced_filters = self.extract_filters(enhanced_query)
+                    results, _ = self._perform_search(
+                        enhanced_query, enhanced_filters, search_mode, max_results
+                    )
+                    llm_fallback_used = True
+                    logger.info(f"LLM enhanced query: '{enhanced_query}'")
+            
+            # Check if no results after fallback
             if not results:
                 return {
                     "status": "error",
                     "error_code": "NO_RESULTS",
-                    "message": "no results found for query"
+                    "message": "no results found for query",
+                    "llm_fallback_used": llm_fallback_used,
+                    "enhanced_query": enhanced_query
                 }
             
             # Format results
-            formatted_results = []
-            for rank, result in enumerate(results, 1):
-                # Get default image
-                default_image = ""
-                if result.get('images'):
-                    for img in result['images']:
-                        if img.get('is_default'):
-                            default_image = img.get('url', '')
-                            break
-                    if not default_image and result['images']:
-                        default_image = result['images'][0].get('url', '')
-                
-                formatted_results.append({
-                    "variant_id": result['variant_id'],
-                    "product_name": result.get('product_name', ''),
-                    "variant_name": result.get('variant_name', ''),
-                    "description": result.get('description', ''),
-                    "price": result.get('price', 0),
-                    "currency": result.get('currency', 'SGD'),
-                    "image_url": default_image,
-                    "score": round(result.get('score', 0), 4),
-                    "rank": rank,
-                    "review_rating": result.get('review_rating', 0),
-                    "review_count": result.get('review_count', 0),
-                    "stock_status": result.get('stock_status', ''),
-                    "frontend_category": result.get('frontend_category', ''),
-                    "images": result.get('images', []),
-                    "properties": result.get('properties', {}),
-                    "options": result.get('options', [])
-                })
+            formatted_results = self._format_results(results)
+            
+            # Feature 6: Generate related tags using two-tier approach
+            related_tags = self.llm_service.generate_related_tags(
+                user_search_string, formatted_results, self.tag_index
+            )
             
             response_time = int((time.time() - start_time) * 1000)
             
@@ -352,11 +343,14 @@ class SearchQueryService:
                 "status": "success",
                 "total_results": len(formatted_results),
                 "results": formatted_results,
+                "related_tags": related_tags,  # Feature 6
                 "search_metadata": {
-                    "query": user_search_string,
+                    "query": original_query,
                     "search_mode": search_mode,
                     "filters_applied": filters,
-                    "response_time_ms": response_time
+                    "response_time_ms": response_time,
+                    "llm_fallback_used": llm_fallback_used,  # Feature 5
+                    "enhanced_query": enhanced_query  # Feature 5
                 }
             }
             
@@ -367,6 +361,74 @@ class SearchQueryService:
                 "error_code": "SEARCH_FAILED",
                 "message": str(e)
             }
+    
+    def _perform_search(
+        self,
+        query: str,
+        filters: Dict,
+        search_mode: str,
+        max_results: int
+    ) -> Tuple[List[Dict], float]:
+        """
+        Perform search and return results with top score.
+        Returns (results, top_score) tuple.
+        """
+        if search_mode == 'knn':
+            query_embedding = self.generate_query_embedding(query)
+            results = self.knn_search(query_embedding, filters, max_results)
+            
+        elif search_mode == 'bm25':
+            results = self.bm25_search(query, filters, max_results)
+            
+        elif search_mode == 'hybrid':
+            query_embedding = self.generate_query_embedding(query)
+            knn_results = self.knn_search(query_embedding, filters, max_results)
+            bm25_results = self.bm25_search(query, filters, max_results)
+            rrf_k = self.config['search_query']['rrf']['k']
+            results = self.reciprocal_rank_fusion(knn_results, bm25_results, rrf_k)
+            results = results[:max_results]
+        else:
+            raise ValueError(f"Unknown search mode: {search_mode}")
+        
+        # Get top score for fallback decision
+        top_score = results[0].get('score', 0.0) if results else 0.0
+        
+        return results, top_score
+    
+    def _format_results(self, results: List[Dict]) -> List[Dict]:
+        """Format search results for API response."""
+        formatted_results = []
+        for rank, result in enumerate(results, 1):
+            # Get default image
+            default_image = ""
+            if result.get('images'):
+                for img in result['images']:
+                    if img.get('is_default'):
+                        default_image = img.get('url', '')
+                        break
+                if not default_image and result['images']:
+                    default_image = result['images'][0].get('url', '')
+            
+            formatted_results.append({
+                "variant_id": result['variant_id'],
+                "product_name": result.get('product_name', ''),
+                "variant_name": result.get('variant_name', ''),
+                "description": result.get('description', ''),
+                "price": result.get('price', 0),
+                "currency": result.get('currency', 'SGD'),
+                "image_url": default_image,
+                "score": round(result.get('score', 0), 4),
+                "rank": rank,
+                "review_rating": result.get('review_rating', 0),
+                "review_count": result.get('review_count', 0),
+                "stock_status": result.get('stock_status', ''),
+                "frontend_category": result.get('frontend_category', ''),
+                "images": result.get('images', []),
+                "properties": result.get('properties', {}),
+                "options": result.get('options', [])
+            })
+        
+        return formatted_results
     
     def get_image_match_result(self, image_base64: str) -> Dict:
         """
@@ -462,6 +524,32 @@ class SearchQueryService:
                 "error_code": "SEARCH_FAILED",
                 "message": str(e)
             }
+    
+    def refine_search_by_tag(self, original_query: str, tag: str, tag_type: str) -> Dict:
+        """
+        Feature 6: Refine search based on selected tag.
+        
+        Args:
+            original_query: The original search query
+            tag: The selected tag value (e.g., "Dining Chairs", "Under $1,000")
+            tag_type: Type of tag (category, price_range, material, style, color)
+        
+        Returns:
+            Search results refined by the selected tag
+        """
+        # Build refined query based on tag type
+        if tag_type == 'price_range':
+            # Parse price range and add as filter
+            refined_query = f"{original_query} {tag}"
+        elif tag_type == 'category':
+            # Add category to query
+            refined_query = f"{tag} {original_query}"
+        else:
+            # Add attribute to query
+            refined_query = f"{original_query} {tag}"
+        
+        # Perform search with refined query
+        return self.get_text_results(refined_query)
 
 
 def main():

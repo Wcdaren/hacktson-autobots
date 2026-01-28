@@ -145,3 +145,163 @@ monitoring:
     - search_errors
     - embedding_generation_time
     - index_size
+    - llm_fallback_count
+    - tag_generation_count
+
+# =============================================================================
+# NEW FEATURES
+# =============================================================================
+
+# Feature 5: LLM Fallback for Intent Extraction
+llm_fallback:
+  enabled: true
+  model_id: anthropic.claude-3-sonnet-20240229-v1:0  # Configurable Claude model
+  similarity_threshold: 0.3  # Trigger fallback when top score is below this
+  cache_enabled: true
+  cache_ttl_seconds: 3600  # 1 hour cache for LLM responses
+  max_retries: 2
+  timeout_seconds: 30
+  
+  # Intent mapping knowledge base (abstract terms -> concrete attributes)
+  intent_mappings:
+    royal:
+      - ornate
+      - gold accents
+      - traditional
+      - vintage
+      - elegant
+      - luxurious
+    cozy:
+      - soft fabric
+      - plush
+      - comfortable
+      - warm colors
+      - cushioned
+    minimalist:
+      - clean lines
+      - simple
+      - modern
+      - neutral colors
+      - sleek
+    rustic:
+      - wood
+      - natural
+      - farmhouse
+      - distressed
+      - handcrafted
+    industrial:
+      - metal
+      - iron
+      - raw
+      - urban
+      - exposed
+
+# Feature 6: Related Search Tags (Google Shopping Style)
+related_tags:
+  enabled: true
+  min_tags: 3
+  max_tags: 10
+  llm_model_id: anthropic.claude-3-sonnet-20240229-v1:0
+  cache_enabled: true
+  cache_ttl_seconds: 1800  # 30 minutes cache for tags
+  
+  # Tag types to generate
+  tag_types:
+    - categories
+    - price_ranges
+    - materials
+    - styles
+    - colors
+  
+  # Valid catalog values (used for tag validation)
+  catalog_values:
+    categories:
+      - Sofas
+      - Tables
+      - Chairs
+      - Beds
+      - Desks
+      - Cabinets
+      - Shelves
+      - Lamps
+      - Dining Tables
+      - Coffee Tables
+      - Side Tables
+      - Console Tables
+      - Armchairs
+      - Dining Chairs
+      - Office Chairs
+      - Bar Stools
+      - Recliners
+      - Sectionals
+      - 2-Seater
+      - 3-Seater
+      - King Beds
+      - Queen Beds
+      - Nightstands
+      - Dressers
+      - Wardrobes
+      - Bookcases
+      - TV Units
+      - Ottomans
+      - Benches
+    
+    price_ranges:
+      - Under $500
+      - Under $1,000
+      - Under $1,500
+      - Under $2,000
+      - $500-$1,000
+      - $1,000-$2,000
+      - $2,000-$3,000
+      - Over $3,000
+    
+    materials:
+      - Leather
+      - Fabric
+      - Wood
+      - Metal
+      - Glass
+      - Marble
+      - Rattan
+      - Velvet
+      - Linen
+      - Cotton
+      - Walnut
+      - Oak
+      - Acacia
+      - Teak
+    
+    styles:
+      - Modern
+      - Traditional
+      - Minimalist
+      - Scandinavian
+      - Industrial
+      - Mid-Century
+      - Contemporary
+      - Rustic
+      - Bohemian
+      - Coastal
+      - Farmhouse
+      - Art Deco
+      - Swivel
+      - Reclining
+      - Extendable
+      - Modular
+    
+    colors:
+      - Brown
+      - Grey
+      - White
+      - Black
+      - Beige
+      - Blue
+      - Green
+      - Navy
+      - Cream
+      - Tan
+      - Charcoal
+      - Natural
+      - Walnut
+      - Oak

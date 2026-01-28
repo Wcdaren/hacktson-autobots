@@ -59,7 +59,7 @@ def lambda_handler(event, context):
         
         # Route to appropriate handler
         if path == '/search/text' or path == '/text':
-            # Text search
+            # Text search (includes Feature 5 LLM fallback & Feature 6 related tags)
             query = body.get('query', '')
             result = search_service.get_text_results(query)
             
@@ -67,6 +67,13 @@ def lambda_handler(event, context):
             # Image search
             image_base64 = body.get('image', '')
             result = search_service.get_image_match_result(image_base64)
+        
+        elif path == '/search/refine' or path == '/refine':
+            # Feature 6: Refine search by tag
+            original_query = body.get('original_query', '')
+            tag = body.get('tag', '')
+            tag_type = body.get('tag_type', 'category')
+            result = search_service.refine_search_by_tag(original_query, tag, tag_type)
             
         else:
             return {
