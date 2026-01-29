@@ -32,7 +32,7 @@ fi
 echo "✓ Environment file found"
 
 # Load SSH_KEY_PATH from .env
-source .env 2>/dev/null
+SSH_KEY_PATH=$(grep "^SSH_KEY_PATH=" .env | cut -d '=' -f2-)
 SSH_KEY_PATH="${SSH_KEY_PATH:-$HOME/.ssh/id_rsa}"
 
 # Check if SSH key exists

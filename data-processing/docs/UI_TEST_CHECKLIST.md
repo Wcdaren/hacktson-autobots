@@ -123,6 +123,113 @@ cd src
 
 ---
 
+## Related Tags Tests
+
+### Test 1: Tag Display for Text Search
+**Query**: `sofa`
+
+**Steps**:
+1. [ ] Enter "sofa" in search box
+2. [ ] Click "Search"
+3. [ ] Check area below results count
+
+**Expected**:
+- [ ] "Related:" label appears
+- [ ] Tags display as pill-shaped buttons
+- [ ] Tags like "Sectionals", "Leather", "Modern", "Under $1,000"
+- [ ] Tags have different colors by type
+- [ ] Hover effect works (darker shade)
+
+**If fails**: Check if `related_tags` in API response
+
+### Test 2: Tag Click Refinement
+**Query**: `sofa`
+
+**Steps**:
+1. [ ] Perform search for "sofa"
+2. [ ] Click tag "Leather"
+3. [ ] Wait for new results
+
+**Expected**:
+- [ ] New search performed automatically
+- [ ] Query refined to "sofa Leather"
+- [ ] New results displayed
+- [ ] New tags appear for refined search
+- [ ] Loading indicator shows during refinement
+
+**If fails**: Check tag click handler implementation
+
+### Test 3: Multiple Tag Clicks
+**Query**: `chair`
+
+**Steps**:
+1. [ ] Search for "chair"
+2. [ ] Click tag "Modern"
+3. [ ] Click another tag "Under $500"
+
+**Expected**:
+- [ ] Each click refines search further
+- [ ] Query becomes "chair Modern Under $500"
+- [ ] Results progressively refined
+- [ ] Tags update after each click
+
+### Test 4: Tag Styling by Type
+**Query**: `dining table`
+
+**Steps**:
+1. [ ] Perform search
+2. [ ] Examine tag colors
+
+**Expected**:
+- [ ] Category tags: Black background (#000000)
+- [ ] Material tags: Dark gray (#666666)
+- [ ] Style tags: Medium gray (#888888)
+- [ ] Color tags: Warm tan (#C4A77D)
+- [ ] Price tags: Light gray (#CCCCCC)
+- [ ] All tags have white text
+- [ ] Uppercase, small font (12px)
+
+### Test 5: Tags for Image Search
+**Steps**:
+1. [ ] Upload furniture image
+2. [ ] Click "Find Similar Products"
+3. [ ] Check for tags below results
+
+**Expected**:
+- [ ] Tags appear based on similar products
+- [ ] Tags include categories, materials, styles
+- [ ] Clicking tag performs text search with that tag
+- [ ] Tags are relevant to image content
+
+### Test 6: No Tags Edge Case
+**Query**: `xyzabc123nonsense`
+
+**Expected**:
+- [ ] Either no tags shown OR generic tags
+- [ ] No crash or error
+- [ ] "Related:" label hidden if no tags
+
+### Test 7: Many Tags
+**Query**: `furniture` (broad query)
+
+**Expected**:
+- [ ] Maximum 10 tags displayed
+- [ ] Tags don't overflow layout
+- [ ] Tags wrap to multiple lines if needed
+- [ ] All tags remain clickable
+
+### Test 8: Tag Performance
+**Steps**:
+1. [ ] Perform any search
+2. [ ] Note time for tags to appear
+
+**Expected**:
+- [ ] Tags appear instantly with results (<100ms)
+- [ ] No noticeable delay
+- [ ] Pre-computed tags used for common queries
+
+---
+
 ## Image Search Tests
 
 ### Test 1: Upload Valid Image
@@ -301,6 +408,7 @@ cd src
 - [ ] UI starts cleanly
 - [ ] Text search works
 - [ ] Image search works
+- [ ] **Related tags display and work**
 - [ ] Logs are being created
 - [ ] Performance is good (<3s)
 - [ ] No errors in terminal
@@ -308,9 +416,10 @@ cd src
 - [ ] Have demo queries ready
 
 ### Demo Queries (Tested and Working)
-- [ ] `grey leather sofa under $2000`
-- [ ] `walnut dining table between $500 and $1500`
-- [ ] `modern minimalist oak bed frame`
+- [ ] `grey leather sofa under $2000` (check tags appear)
+- [ ] `walnut dining table between $500 and $1500` (check tags)
+- [ ] `modern minimalist oak bed frame` (check tags)
+- [ ] Click a tag and verify refinement works
 - [ ] Have 1-2 sample images ready
 
 ### Backup Plan
@@ -330,6 +439,7 @@ cd src
 | Pre-Flight Checks | ☐ | ☐ | |
 | Startup Tests | ☐ | ☐ | |
 | Text Search Tests | ☐ | ☐ | |
+| Related Tags Tests | ☐ | ☐ | |
 | Image Search Tests | ☐ | ☐ | |
 | Logging Tests | ☐ | ☐ | |
 | Performance Tests | ☐ | ☐ | |

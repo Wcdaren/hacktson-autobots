@@ -198,7 +198,7 @@ class SearchQueryService:
             raise
     
     def knn_search(self, query_embedding: List[float], filters: Dict, k: int = 50) -> List[Dict]:
-        """Perform KNN search on OpenSearch."""
+        """Perform KNN search on OpenSearch with soft filter boosting."""
         query_body = {
             "size": k,
             "query": {
@@ -211,21 +211,70 @@ class SearchQueryService:
             }
         }
         
-        # Add filters if present
+        # Get filter boost values from config
+        filter_boosts = self.config['search_query'].get('filter_boosts', {})
+        
+        # Use filters as boosting signals (soft filtering - boosts matches but doesn't exclude non-matches)
         if filters:
-            filter_clauses = []
+            should_clauses = []
+            must_clauses = []
             
+            # Price filters (hard filter - must match)
             if 'price_max' in filters:
-                filter_clauses.append({"range": {"price": {"lte": filters['price_max']}}})
+                must_clauses.append({"range": {"price": {"lte": filters['price_max']}}})
             
             if 'price_min' in filters:
-                filter_clauses.append({"range": {"price": {"gte": filters['price_min']}}})
+                must_clauses.append({"range": {"price": {"gte": filters['price_min']}}})
             
-            if filter_clauses:
+            # Category filters - boost matching products (soft filter)
+            if 'categories' in filters and filters['categories']:
+                for category in filters['categories']:
+                    # Text fields (variant_name, product_name) - use match with fuzziness
+                    should_clauses.extend([
+                        {"match": {"variant_name": {"query": category, "fuzziness": "AUTO", "boost": filter_boosts.get('variant_name', 4.0)}}},
+                        {"match": {"product_name": {"query": category, "fuzziness": "AUTO", "boost": filter_boosts.get('product_name', 3.5)}}}
+                    ])
+                    # Keyword fields - use wildcard for partial matching
+                    category_lower = category.lower()
+                    should_clauses.extend([
+                        {"wildcard": {"frontend_category": {"value": f"*{category_lower}*", "boost": filter_boosts.get('category', 3.0), "case_insensitive": True}}},
+                        {"wildcard": {"frontend_subcategory": {"value": f"*{category_lower}*", "boost": filter_boosts.get('category', 3.0), "case_insensitive": True}}},
+                        {"wildcard": {"product_type": {"value": f"*{category_lower}*", "boost": filter_boosts.get('category', 3.0) * 0.7, "case_insensitive": True}}}
+                    ])
+            
+            # Color filters - boost matching products (soft filter)
+            if 'colors' in filters and filters['colors']:
+                for color in filters['colors']:
+                    # Text fields
+                    should_clauses.extend([
+                        {"match": {"variant_name": {"query": color, "fuzziness": "AUTO", "boost": filter_boosts.get('variant_name', 4.0)}}},
+                        {"match": {"product_name": {"query": color, "fuzziness": "AUTO", "boost": filter_boosts.get('product_name', 3.5)}}}
+                    ])
+                    # Keyword field
+                    color_lower = color.lower()
+                    should_clauses.append(
+                        {"wildcard": {"color_tone": {"value": f"*{color_lower}*", "boost": filter_boosts.get('color', 2.5), "case_insensitive": True}}}
+                    )
+            
+            # Material filters - boost matching products (soft filter)
+            if 'materials' in filters and filters['materials']:
+                for material in filters['materials']:
+                    # Text fields
+                    should_clauses.extend([
+                        {"match": {"variant_name": {"query": material, "fuzziness": "AUTO", "boost": filter_boosts.get('variant_name', 4.0)}}},
+                        {"match": {"product_name": {"query": material, "fuzziness": "AUTO", "boost": filter_boosts.get('product_name', 3.5)}}}
+                    ])
+                    # Keyword field
+                    material_lower = material.lower()
+                    should_clauses.append(
+                        {"wildcard": {"material": {"value": f"*{material_lower}*", "boost": filter_boosts.get('material', 2.5), "case_insensitive": True}}}
+                    )
+            
+            if should_clauses or must_clauses:
                 query_body["query"] = {
                     "bool": {
-                        "must": [query_body["query"]],
-                        "filter": filter_clauses
+                        "must": [query_body["query"]] + must_clauses,
+                        "should": should_clauses
                     }
                 }
         
@@ -248,8 +297,9 @@ class SearchQueryService:
             raise
     
     def bm25_search(self, query: str, filters: Dict, k: int = 50) -> List[Dict]:
-        """Perform BM25 keyword search on OpenSearch."""
+        """Perform BM25 keyword search on OpenSearch with soft filter boosting."""
         field_boosts = self.config['search_query']['field_boosts']
+        filter_boosts = self.config['search_query'].get('filter_boosts', {})
         
         query_body = {
             "size": k,
@@ -261,7 +311,7 @@ class SearchQueryService:
                         f"variant_name^{field_boosts['variant_name']}",
                         f"description^{field_boosts['description']}",
                         f"frontend_category^{field_boosts['categories']}",
-                        f"backend_category^{field_boosts['categories']}",
+                        f"frontend_subcategory^{field_boosts['categories']}",
                         f"aggregated_text^{field_boosts['properties']}"
                     ],
                     "type": "best_fields"
@@ -269,21 +319,67 @@ class SearchQueryService:
             }
         }
         
-        # Add filters
+        # Use filters as boosting signals (soft filtering)
         if filters:
-            filter_clauses = []
+            should_clauses = []
+            must_clauses = []
             
+            # Price filters (hard filter - must match)
             if 'price_max' in filters:
-                filter_clauses.append({"range": {"price": {"lte": filters['price_max']}}})
+                must_clauses.append({"range": {"price": {"lte": filters['price_max']}}})
             
             if 'price_min' in filters:
-                filter_clauses.append({"range": {"price": {"gte": filters['price_min']}}})
+                must_clauses.append({"range": {"price": {"gte": filters['price_min']}}})
             
-            if filter_clauses:
+            # Category filters - boost matching products (soft filter)
+            if 'categories' in filters and filters['categories']:
+                for category in filters['categories']:
+                    # Text fields (variant_name, product_name) - use match with fuzziness
+                    should_clauses.extend([
+                        {"match": {"variant_name": {"query": category, "fuzziness": "AUTO", "boost": filter_boosts.get('variant_name', 4.0)}}},
+                        {"match": {"product_name": {"query": category, "fuzziness": "AUTO", "boost": filter_boosts.get('product_name', 3.5)}}}
+                    ])
+                    # Keyword fields - use wildcard for partial matching
+                    category_lower = category.lower()
+                    should_clauses.extend([
+                        {"wildcard": {"frontend_category": {"value": f"*{category_lower}*", "boost": filter_boosts.get('category', 3.0), "case_insensitive": True}}},
+                        {"wildcard": {"frontend_subcategory": {"value": f"*{category_lower}*", "boost": filter_boosts.get('category', 3.0), "case_insensitive": True}}},
+                        {"wildcard": {"product_type": {"value": f"*{category_lower}*", "boost": filter_boosts.get('category', 3.0) * 0.7, "case_insensitive": True}}}
+                    ])
+            
+            # Color filters - boost matching products (soft filter)
+            if 'colors' in filters and filters['colors']:
+                for color in filters['colors']:
+                    # Text fields
+                    should_clauses.extend([
+                        {"match": {"variant_name": {"query": color, "fuzziness": "AUTO", "boost": filter_boosts.get('variant_name', 4.0)}}},
+                        {"match": {"product_name": {"query": color, "fuzziness": "AUTO", "boost": filter_boosts.get('product_name', 3.5)}}}
+                    ])
+                    # Keyword field
+                    color_lower = color.lower()
+                    should_clauses.append(
+                        {"wildcard": {"color_tone": {"value": f"*{color_lower}*", "boost": filter_boosts.get('color', 2.5), "case_insensitive": True}}}
+                    )
+            
+            # Material filters - boost matching products (soft filter)
+            if 'materials' in filters and filters['materials']:
+                for material in filters['materials']:
+                    # Text fields
+                    should_clauses.extend([
+                        {"match": {"variant_name": {"query": material, "fuzziness": "AUTO", "boost": filter_boosts.get('variant_name', 4.0)}}},
+                        {"match": {"product_name": {"query": material, "fuzziness": "AUTO", "boost": filter_boosts.get('product_name', 3.5)}}}
+                    ])
+                    # Keyword field
+                    material_lower = material.lower()
+                    should_clauses.append(
+                        {"wildcard": {"material": {"value": f"*{material_lower}*", "boost": filter_boosts.get('material', 2.5), "case_insensitive": True}}}
+                    )
+            
+            if should_clauses or must_clauses:
                 query_body["query"] = {
                     "bool": {
-                        "must": [query_body["query"]],
-                        "filter": filter_clauses
+                        "must": [query_body["query"]] + must_clauses,
+                        "should": should_clauses
                     }
                 }
         
@@ -606,12 +702,16 @@ class SearchQueryService:
                     "variant_url": result.get('variant_url', '')
                 })
             
+            # Generate related tags based on image search results
+            related_tags = self._generate_tags_from_results(formatted_results)
+            
             response_time = int((time.time() - start_time) * 1000)
             
             return {
                 "status": "success",
                 "total_results": len(formatted_results),
                 "results": formatted_results,
+                "related_tags": related_tags,  # Add tags for image search
                 "search_metadata": {
                     "search_type": "image_similarity",
                     "response_time_ms": response_time
@@ -651,6 +751,86 @@ class SearchQueryService:
         
         # Perform search with refined query
         return self.get_text_results(refined_query)
+    
+    def _generate_tags_from_results(self, results: List[Dict]) -> List[Dict]:
+        """
+        Generate tags from image search results based on common attributes.
+        
+        Args:
+            results: List of search result products
+            
+        Returns:
+            List of tag dicts with tag, type, relevance_score
+        """
+        if not results:
+            return []
+        
+        # Collect attributes from top results
+        categories = {}
+        materials = {}
+        colors = {}
+        
+        for result in results[:10]:  # Use top 10 results
+            # Count categories
+            category = result.get('frontend_category', '')
+            if category:
+                categories[category] = categories.get(category, 0) + 1
+            
+            # Count materials
+            material = result.get('material', '')
+            if material:
+                materials[material] = materials.get(material, 0) + 1
+            
+            # Count colors
+            color = result.get('color_tone', '')
+            if color:
+                colors[color] = colors.get(color, 0) + 1
+        
+        # Build tags from most common attributes
+        tags = []
+        
+        # Add top categories
+        sorted_categories = sorted(categories.items(), key=lambda x: x[1], reverse=True)
+        for category, count in sorted_categories[:3]:
+            tags.append({
+                'tag': category,
+                'type': 'category',
+                'relevance_score': min(0.9, count / 10)
+            })
+        
+        # Add top materials
+        sorted_materials = sorted(materials.items(), key=lambda x: x[1], reverse=True)
+        for material, count in sorted_materials[:2]:
+            tags.append({
+                'tag': material,
+                'type': 'material',
+                'relevance_score': min(0.8, count / 10)
+            })
+        
+        # Add top colors
+        sorted_colors = sorted(colors.items(), key=lambda x: x[1], reverse=True)
+        for color, count in sorted_colors[:2]:
+            tags.append({
+                'tag': color,
+                'type': 'color',
+                'relevance_score': min(0.7, count / 10)
+            })
+        
+        # Add generic style tags
+        tags.append({'tag': 'Modern', 'type': 'style', 'relevance_score': 0.6})
+        
+        # Add price range tags based on results
+        prices = [r.get('price', 0) for r in results[:10]]
+        avg_price = sum(prices) / len(prices) if prices else 0
+        
+        if avg_price < 1000:
+            tags.append({'tag': 'Under $1,000', 'type': 'price_range', 'relevance_score': 0.5})
+        elif avg_price < 2000:
+            tags.append({'tag': 'Under $2,000', 'type': 'price_range', 'relevance_score': 0.5})
+        else:
+            tags.append({'tag': 'Premium', 'type': 'price_range', 'relevance_score': 0.5})
+        
+        return tags[:10]  # Limit to 10 tags
 
 
 def main():

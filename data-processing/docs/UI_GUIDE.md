@@ -94,7 +94,45 @@ If it doesn't open automatically, manually navigate to the URL shown in the term
    - **Expected**: No results or low-quality results
    - **Check**: "No products found" message
 
-### Test 2: Image Search
+### Test 2: Related Tags
+
+#### Tag Display
+1. Enter: `sofa`
+   - **Expected**: Tags appear below results count
+   - **Check**: Tags like "Sectionals", "Leather", "Modern", "Under $1,000"
+
+2. Enter: `dining table`
+   - **Expected**: Tags like "Dining Chairs", "Wood", "Marble", "Under $2,000"
+   - **Check**: Tags are relevant to query
+
+#### Tag Click Behavior
+3. Enter: `sofa`
+   - Click tag: `Leather`
+   - **Expected**: New search for "sofa Leather"
+   - **Check**: Results update, new tags appear
+
+4. Enter: `chair`
+   - Click tag: `Modern`
+   - Click another tag: `Under $500`
+   - **Expected**: Progressive refinement works
+   - **Check**: Each click refines further
+
+#### Tag Styling
+5. Check tag appearance:
+   - **Expected**: Pill-shaped buttons
+   - **Check**: Different colors by type (category=black, material=gray, etc.)
+   - **Check**: Hover effect works
+
+#### Edge Cases
+6. Enter: `xyzabc123nonsense`
+   - **Expected**: Either no tags or generic tags
+   - **Check**: No crash, graceful handling
+
+7. Query with many tags:
+   - **Expected**: Max 10 tags displayed
+   - **Check**: Tags don't overflow layout
+
+### Test 3: Image Search
 
 #### Test with Sample Images
 1. **Navigate to test images**:

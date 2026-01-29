@@ -454,7 +454,19 @@ search_query:
     categories: 2.0
     properties: 1.0
   
-  # Filter extraction (uses unified 'catalog' section for values)
+  # Filter boosting (soft filtering - boosts matching products, doesn't exclude others)
+  filter_boosts:
+    # When filters match in product/variant names (highest priority)
+    variant_name: 4.0
+    product_name: 3.5
+    # When filters match in specific fields
+    category: 3.0
+    color: 2.5
+    material: 2.5
+    style: 2.0
+    size: 2.0
+  
+  # Filter extraction 
   filters:
     enabled: true
     

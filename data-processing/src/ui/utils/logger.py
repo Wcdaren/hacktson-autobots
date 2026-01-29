@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +14,18 @@ logger = logging.getLogger(__name__)
 class SearchLogger:
     """Logs search queries and results to hourly JSON files."""
     
-    def __init__(self, logs_dir='unit_4_search_query/logs'):
-        self.logs_dir = Path(logs_dir)
+    def __init__(self, logs_dir=None):
+        """Initialize logger with ui/logs directory."""
+        if logs_dir is None:
+            # Get the directory where this file is located (src/ui/utils/)
+            # and go up to src/ui/logs/
+            this_file = Path(__file__).resolve()
+            self.logs_dir = this_file.parent.parent / 'logs'
+        else:
+            self.logs_dir = Path(logs_dir)
+        
         self.logs_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"SearchLogger initialized with logs_dir: {self.logs_dir}")
     
     def log_search(self, search_type: str, query: str, result: dict):
         """

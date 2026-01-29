@@ -455,10 +455,197 @@ st.markdown("""
 
 ---
 
+## Feature 6: Related Tags Implementation
+
+### Overview
+Display clickable refinement tags below search results to help users refine their search. Tags are generated using a two-tier approach:
+- **Tier 1 (95%)**: Pre-computed tag index for instant retrieval (<1ms)
+- **Tier 2 (5%)**: LLM-generated tags for unique queries (1-2s)
+
+### Backend Support
+The tag generation is already implemented in:
+- `src/unit_4_search_query/tag_index_service.py` - Pre-computed tag index
+- `src/unit_4_search_query/llm_service.py` - LLM tag generation
+- `src/unit_4_search_query/search_service.py` - Integration in `get_text_results()` and `get_image_match_result()`
+
+### API Response Format
+```json
+{
+  "status": "success",
+  "results": [...],
+  "related_tags": [
+    {"tag": "Dining Chairs", "type": "category", "relevance_score": 0.9},
+    {"tag": "Leather", "type": "material", "relevance_score": 0.8},
+    {"tag": "Modern", "type": "style", "relevance_score": 0.7},
+    {"tag": "Under $1,000", "type": "price_range", "relevance_score": 0.6}
+  ]
+}
+```
+
+### UI Implementation Requirements
+
+#### 1. Tag Display Component
+Display tags as clickable pills below the search results count:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  50 results found (850ms)                                   │
+├─────────────────────────────────────────────────────────────┤
+│  Related: [Dining Chairs] [Leather] [Modern] [Under $1,000] │
+├─────────────────────────────────────────────────────────────┤
+│  [Product Grid...]                                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 2. Tag Styling
+- Pill-shaped buttons with rounded corners
+- Different colors by tag type:
+  - Category: Black background (#000000)
+  - Material: Dark gray (#666666)
+  - Style: Medium gray (#888888)
+  - Color: Warm tan (#C4A77D)
+  - Price Range: Light gray (#CCCCCC)
+- White text on all tags
+- Hover effect: Slightly darker shade
+- Small font (12px), uppercase, letter-spacing
+
+#### 3. Tag Click Behavior
+When a tag is clicked:
+1. Append tag to original query
+2. Perform new search with refined query
+3. Display new results
+4. Show updated tags for refined search
+
+Example flow:
+- Original query: `sofa`
+- User clicks tag: `Leather`
+- New query: `sofa Leather`
+- New search performed
+- New tags displayed
+
+#### 4. Tag Display for Image Search
+For image searches, generate tags based on:
+- Categories of similar products found
+- Common materials in results
+- Price ranges of results
+- Styles detected in results
+
+Display tags the same way as text search.
+
+### Implementation Steps
+
+#### Phase 1: Display Tags (30 min)
+- [ ] Extract `related_tags` from API response
+- [ ] Create tag pill component
+- [ ] Display tags below results count
+- [ ] Style tags by type
+
+#### Phase 2: Tag Click Handler (20 min)
+- [ ] Implement click handler
+- [ ] Refine search with selected tag
+- [ ] Update results and tags
+
+#### Phase 3: Image Search Tags (20 min)
+- [ ] Update `get_image_match_result()` to return tags
+- [ ] Display tags for image search results
+- [ ] Test tag refinement for image searches
+
+#### Phase 4: Polish (10 min)
+- [ ] Add loading state when tag clicked
+- [ ] Smooth scroll to results
+- [ ] Test edge cases (no tags, many tags)
+
+### Sample Code
+
+#### Extract and Display Tags
+```python
+# In main app after search
+if result.get('status') == 'success':
+    related_tags = result.get('related_tags', [])
+    
+    if related_tags:
+        st.markdown('<div class="tags-container">Related: ', unsafe_allow_html=True)
+        
+        cols = st.columns(len(related_tags))
+        for i, tag_data in enumerate(related_tags):
+            with cols[i]:
+                tag = tag_data['tag']
+                tag_type = tag_data['type']
+                
+                # Color by type
+                color_map = {
+                    'category': '#000000',
+                    'material': '#666666',
+                    'style': '#888888',
+                    'color': '#C4A77D',
+                    'price_range': '#CCCCCC'
+                }
+                bg_color = color_map.get(tag_type, '#888888')
+                
+                if st.button(tag, key=f"tag_{i}"):
+                    # Refine search
+                    refined_query = f"{query} {tag}"
+                    st.session_state['refined_query'] = refined_query
+                    st.rerun()
+```
+
+#### Tag Styling CSS
+```python
+st.markdown("""
+<style>
+    /* Tag container */
+    .tags-container {
+        margin: 16px 0;
+        font-size: 13px;
+        color: #666666;
+    }
+    
+    /* Tag pills */
+    .stButton > button[kind="secondary"] {
+        background-color: #000000;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 20px;
+        padding: 6px 16px;
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin: 4px;
+    }
+    
+    .stButton > button[kind="secondary"]:hover {
+        background-color: #333333;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+</style>
+""", unsafe_allow_html=True)
+```
+
+### Testing Checklist
+- [ ] Tags display for text search
+- [ ] Tags display for image search
+- [ ] Clicking tag refines search
+- [ ] Refined search shows new tags
+- [ ] Tags styled correctly by type
+- [ ] No tags shown when list is empty
+- [ ] Many tags (>10) display properly
+- [ ] Tags work on mobile/narrow screens
+
+### Success Criteria
+1. ✅ Tags display below search results
+2. ✅ Tags are clickable and refine search
+3. ✅ Tags styled by type with Castlery colors
+4. ✅ Tags work for both text and image search
+5. ✅ Performance: Tags appear instantly (<100ms)
+6. ✅ UX: Smooth interaction, clear feedback
+
+---
+
 ## Future Enhancements (Out of Scope for Now)
 
-- Related Tags (Feature 6) - clickable refinement tags
 - Search history
 - Favorites/wishlist
 - Product comparison
 - Advanced filters UI
+- Tag analytics (track which tags are clicked most)

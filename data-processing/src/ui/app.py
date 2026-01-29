@@ -225,6 +225,43 @@ def init_services():
         st.stop()
 
 
+def display_related_tags(tags, query, search_type='text'):
+    """Display related tags as compact clickable pills."""
+    if not tags:
+        return
+    
+    st.markdown(
+        '<p style="font-size: 12px; color: #666; margin: 8px 0 4px 0;">Related searches:</p>',
+        unsafe_allow_html=True
+    )
+    
+    # Create a compact row of buttons (limit to 6 tags)
+    num_tags = min(len(tags), 6)
+    cols = st.columns([1] * num_tags + [2])
+    
+    for i, tag_data in enumerate(tags[:num_tags]):
+        with cols[i]:
+            tag = tag_data.get('tag', '')
+            if st.button(tag, key=f"tag_{search_type}_{i}_{tag}"):
+                # Build new query
+                if search_type == 'image':
+                    new_query = tag
+                else:
+                    new_query = f"{query} {tag}" if query else tag
+                
+                # Directly perform search and store results
+                search_service, search_logger, _, _ = init_services()
+                try:
+                    result = search_service.get_text_results(new_query)
+                    search_logger.log_search('text', new_query, result)
+                    st.session_state['last_result'] = result
+                    st.session_state['last_query'] = new_query
+                    st.session_state['current_query'] = new_query
+                except Exception as e:
+                    st.error(f"Search failed: {e}")
+                st.rerun()
+
+
 def display_product_card(product, col, image_loader):
     """Display a single product card."""
     with col:
@@ -290,48 +327,52 @@ def main():
         with col1:
             query = st.text_input(
                 "Search",
+                value=st.session_state.get('current_query', ''),
                 placeholder="Search for furniture... (e.g., 'grey leather sofa under $2000')",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                key="text_search_input"
             )
         with col2:
-            search_button = st.button("Search", key="text_search", use_container_width=True)
+            search_button = st.button("Search", key="text_search")
         
-        # Perform search
+        # Perform search when button clicked
         if search_button and query:
+            st.session_state['current_query'] = query
             with st.spinner("Searching..."):
                 try:
                     result = search_service.get_text_results(query)
-                    
-                    # Log the search
                     search_logger.log_search('text', query, result)
-                    
-                    if result.get('status') == 'success':
-                        products = result.get('results', [])
-                        total_results = result.get('total_results', 0)
-                        response_time = result.get('search_metadata', {}).get('response_time_ms', 0)
-                        
-                        # Display results info
-                        st.markdown(f'<div class="results-info">{total_results} results found ({response_time}ms)</div>', unsafe_allow_html=True)
-                        
-                        # Display products in grid (4 columns)
-                        if products:
-                            for i in range(0, len(products), 4):
-                                cols = st.columns(4)
-                                for j, col in enumerate(cols):
-                                    if i + j < len(products):
-                                        display_product_card(products[i + j], col, image_loader)
-                        else:
-                            st.info("No products found. Try a different search query.")
-                    else:
-                        error_msg = result.get('message', 'Unknown error')
-                        st.error(f"Search failed: {error_msg}")
-                        search_logger.log_error('text', query, error_msg)
-                        
+                    st.session_state['last_result'] = result
+                    st.session_state['last_query'] = query
                 except Exception as e:
-                    error_msg = str(e)
-                    st.error(f"An error occurred: {error_msg}")
-                    search_logger.log_error('text', query, error_msg)
-                    logger.error(f"Text search error: {error_msg}", exc_info=True)
+                    st.error(f"An error occurred: {e}")
+                    search_logger.log_error('text', query, str(e))
+                    st.session_state['last_result'] = None
+        
+        # Display results from session state
+        result = st.session_state.get('last_result')
+        if result and result.get('status') == 'success':
+            products = result.get('results', [])
+            total_results = result.get('total_results', 0)
+            response_time = result.get('search_metadata', {}).get('response_time_ms', 0)
+            related_tags = result.get('related_tags', [])
+            last_query = st.session_state.get('last_query', '')
+            
+            st.markdown(f'<div class="results-info">{total_results} results found ({response_time}ms)</div>', unsafe_allow_html=True)
+            
+            if related_tags:
+                display_related_tags(related_tags, last_query, 'text')
+            
+            if products:
+                for i in range(0, len(products), 4):
+                    cols = st.columns(4)
+                    for j, col in enumerate(cols):
+                        if i + j < len(products):
+                            display_product_card(products[i + j], col, image_loader)
+            else:
+                st.info("No products found. Try a different search query.")
+        elif result and result.get('status') == 'error':
+            st.error(f"Search failed: {result.get('message', 'Unknown error')}")
     
     # Image Search Tab
     with tab2:
@@ -353,7 +394,7 @@ def main():
                 st.image(image, caption="Uploaded Image", use_container_width=True)
             
             # Search button
-            if st.button("Find Similar Products", key="image_search", use_container_width=False):
+            if st.button("Find Similar Products", key="image_search"):
                 with st.spinner("Searching for similar products..."):
                     try:
                         # Convert image to base64
@@ -371,9 +412,14 @@ def main():
                             products = result.get('results', [])
                             total_results = result.get('total_results', 0)
                             response_time = result.get('search_metadata', {}).get('response_time_ms', 0)
+                            related_tags = result.get('related_tags', [])
                             
                             # Display results info
                             st.markdown(f'<div class="results-info">{total_results} similar products found ({response_time}ms)</div>', unsafe_allow_html=True)
+                            
+                            # Display related tags
+                            if related_tags:
+                                display_related_tags(related_tags, '', 'image')  # Empty query for image search
                             
                             # Display products in grid (4 columns)
                             if products:
