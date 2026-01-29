@@ -118,6 +118,7 @@
 ---
 
 ## Status: Phase 3 (Operations) - Complete! ✅ Ready for deployment
+## Status: Phase 4 (UI Demo) - Complete! ✅ UI ready for demo
 
 ---
 
@@ -172,3 +173,73 @@
 | Bedrock (Titan, Claude) | us-east-1 | Models only available here |
 | S3, OpenSearch, RDS | ap-southeast-1 | Data locality |
 | SSH Tunnel | jumphost-sg.castlery.com | Username: autobots |
+
+---
+
+## Phase 4: UI Demo (Streamlit Interface)
+
+### Step 4.1: UI Implementation ✅ COMPLETED
+- [x] Create UI directory structure (`src/ui/`)
+- [x] Implement SSH tunnel management utility
+- [x] Implement search logging utility (hourly JSON logs)
+- [x] Build main Streamlit app with Castlery branding
+- [x] Implement text search interface
+- [x] Implement image search interface with upload
+- [x] Add loading states and error handling
+- [x] Apply Castlery color scheme and styling
+- [x] Create startup script (`start_ui.sh`)
+
+### Step 4.2: Documentation ✅ COMPLETED
+- [x] Create comprehensive UI guide (`docs/UI_GUIDE.md`)
+- [x] Document running and testing procedures
+- [x] Add troubleshooting guide with 8 common issues
+- [x] Include performance benchmarks
+- [x] Add quick reference commands
+- [x] Create UI README (`src/ui/README.md`)
+
+### UI Features Implemented
+- **Text Search**: Natural language queries with filter extraction
+- **Image Search**: Upload JPG/PNG images for visual similarity search
+- **Automatic Logging**: All searches logged to hourly JSON files
+- **Castlery Branding**: Minimalist design matching Castlery's aesthetic
+- **Error Handling**: Graceful handling of SSH, OpenSearch, and search errors
+- **Performance**: Loading indicators and response time display
+
+### UI File Structure
+```
+src/ui/
+├── app.py              # Main Streamlit application
+├── utils/
+│   ├── tunnel.py       # SSH tunnel management
+│   └── logger.py       # Search logging utility
+└── README.md           # UI documentation
+```
+
+### Running the UI
+```bash
+# Quick start
+cd src
+./start_ui.sh
+
+# Or manually
+streamlit run ui/app.py
+```
+
+### Testing Checklist
+- [ ] Text search with simple queries
+- [ ] Text search with complex filters
+- [ ] Image upload and search
+- [ ] Log files created in `src/unit_4_search_query/logs/`
+- [ ] Error handling (empty query, invalid image)
+- [ ] Performance (<3s per search)
+- [ ] UI styling matches Castlery brand
+
+### Known Limitations
+- LLM features (Claude) may not work due to AWS account restrictions (gracefully handled)
+- Related Tags (Feature 6) not yet implemented in UI (future enhancement)
+- Search metadata panel not shown in UI (logged only)
+
+### Next Steps
+- Test UI with demo queries
+- Prepare demo script
+- Optional: Add Related Tags feature to UI

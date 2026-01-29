@@ -1,0 +1,733 @@
+[
+  {
+    "timestamp": "2026-01-29T19:38:56.014883",
+    "search_type": "text",
+    "query": "brown leather sofa",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 2634,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "colors": [
+        "Brown"
+      ],
+      "materials": [
+        "Leather"
+      ],
+      "categories": [
+        "Sofa"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "brown leather sofa",
+    "top_3_results": [
+      {
+        "variant_id": "31455",
+        "variant_name": "Jonathan Leather Sofa, Warm Taupe",
+        "price": 2398.0,
+        "currency": "SGD",
+        "score": 0.0304
+      },
+      {
+        "variant_id": "31454",
+        "variant_name": "Jonathan Leather Sofa, Caramel",
+        "price": 2398.0,
+        "currency": "SGD",
+        "score": 0.0291
+      },
+      {
+        "variant_id": "27875",
+        "variant_name": "Jonathan Leather Corner Sofa, Warm Taupe",
+        "price": 1299.0,
+        "currency": "SGD",
+        "score": 0.0244
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:44:27.137585",
+    "search_type": "text",
+    "query": "brown leather sofa",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 2515,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "colors": [
+        "Brown"
+      ],
+      "materials": [
+        "Leather"
+      ],
+      "categories": [
+        "Sofa"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "brown leather sofa",
+    "top_3_results": [
+      {
+        "variant_id": "31455",
+        "variant_name": "Jonathan Leather Sofa, Warm Taupe",
+        "price": 2398.0,
+        "currency": "SGD",
+        "score": 0.0304
+      },
+      {
+        "variant_id": "31454",
+        "variant_name": "Jonathan Leather Sofa, Caramel",
+        "price": 2398.0,
+        "currency": "SGD",
+        "score": 0.0291
+      },
+      {
+        "variant_id": "27875",
+        "variant_name": "Jonathan Leather Corner Sofa, Warm Taupe",
+        "price": 1299.0,
+        "currency": "SGD",
+        "score": 0.0244
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:45:18.754894",
+    "search_type": "text",
+    "query": "soft king size mattress ",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 1184,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "sizes": [
+        "King"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "soft king size mattress ",
+    "top_3_results": [
+      {
+        "variant_id": "558",
+        "variant_name": "Alber King Size Mattress, High Density Pocket Spring",
+        "price": 1099.0,
+        "currency": "SGD",
+        "score": 0.0323
+      },
+      {
+        "variant_id": "572",
+        "variant_name": "Will King Size Mattress, Pocket Spring and Pillowtop",
+        "price": 999.0,
+        "currency": "SGD",
+        "score": 0.0323
+      },
+      {
+        "variant_id": "569",
+        "variant_name": "Cornell King Size Mattress, Double Pocket Spring",
+        "price": 1299.0,
+        "currency": "SGD",
+        "score": 0.0289
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:45:56.716770",
+    "search_type": "text",
+    "query": "blue glassware",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 1093,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "colors": [
+        "Blue"
+      ],
+      "categories": [
+        "Glassware"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "blue glassware",
+    "top_3_results": [
+      {
+        "variant_id": "33240",
+        "variant_name": "Renoir Moonlight Blue Mugs, Set of 4",
+        "price": 59.0,
+        "currency": "SGD",
+        "score": 0.0267
+      },
+      {
+        "variant_id": "33236",
+        "variant_name": "Renoir Moonlight Blue Salad Plates, Set of 4",
+        "price": 65.0,
+        "currency": "SGD",
+        "score": 0.0239
+      },
+      {
+        "variant_id": "35551",
+        "variant_name": "Lucent White Wine Glasses, Set of 4",
+        "price": 36.0,
+        "currency": "SGD",
+        "score": 0.0164
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:46:28.857992",
+    "search_type": "text",
+    "query": "blue sofa",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 1095,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "colors": [
+        "Blue"
+      ],
+      "categories": [
+        "Sofa"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "blue sofa",
+    "top_3_results": [
+      {
+        "variant_id": "25808",
+        "variant_name": "Jonathan Sofa, Zenith Blue",
+        "price": 1439.0,
+        "currency": "SGD",
+        "score": 0.0328
+      },
+      {
+        "variant_id": "25660",
+        "variant_name": "Jonathan Corner Sofa, Zenith Blue",
+        "price": 799.0,
+        "currency": "SGD",
+        "score": 0.0313
+      },
+      {
+        "variant_id": "34472",
+        "variant_name": "Jonathan Sofa Customized, (Twill) Indigo Blue",
+        "price": 1798.0,
+        "currency": "SGD",
+        "score": 0.0308
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:47:05.297426",
+    "search_type": "text",
+    "query": "dining table",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 838,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "categories": [
+        "Dining Table"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "dining table",
+    "top_3_results": [
+      {
+        "variant_id": "36070",
+        "variant_name": "Casa Dining Table, 154cm",
+        "price": 899.0,
+        "currency": "SGD",
+        "score": 0.0217
+      },
+      {
+        "variant_id": "8693",
+        "variant_name": "Theo Round Dining Table",
+        "price": 1599.0,
+        "currency": "SGD",
+        "score": 0.0203
+      },
+      {
+        "variant_id": "36818",
+        "variant_name": "Seb Dining Table Table 180cm with 4 Wooden Chairs",
+        "price": 1669.0,
+        "currency": "SGD",
+        "score": 0.0164
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:47:38.173475",
+    "search_type": "text",
+    "query": "black dining table",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 830,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "colors": [
+        "Black"
+      ],
+      "categories": [
+        "Dining Table"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "black dining table",
+    "top_3_results": [
+      {
+        "variant_id": "36038",
+        "variant_name": "Anya Dining Chair, Black",
+        "price": 598.0,
+        "currency": "SGD",
+        "score": 0.0292
+      },
+      {
+        "variant_id": "33377",
+        "variant_name": "Bradley Rectangular Dining Table 220cm, Ebony",
+        "price": 839.0,
+        "currency": "SGD",
+        "score": 0.0276
+      },
+      {
+        "variant_id": "33323",
+        "variant_name": "Sofa Armrest Table, Black",
+        "price": 139.0,
+        "currency": "SGD",
+        "score": 0.0274
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:52:05.338218",
+    "search_type": "image",
+    "query": "[image_upload]",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 828,
+    "search_mode": "",
+    "filters_applied": {},
+    "llm_fallback_used": false,
+    "enhanced_query": null,
+    "top_3_results": [
+      {
+        "variant_id": "26638",
+        "variant_name": "Seb Extendable Dining Table, 190-240cm",
+        "price": 1299.0,
+        "currency": "SGD",
+        "score": 1.0
+      },
+      {
+        "variant_id": "483",
+        "variant_name": "Seb Extendable Dining Table, 150-200cm",
+        "price": 1099.0,
+        "currency": "SGD",
+        "score": 0.9382
+      },
+      {
+        "variant_id": "498",
+        "variant_name": "Seb Dining Table, 180cm",
+        "price": 799.0,
+        "currency": "SGD",
+        "score": 0.8742
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:52:58.673867",
+    "search_type": "image",
+    "query": "[image_upload]",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 508,
+    "search_mode": "",
+    "filters_applied": {},
+    "llm_fallback_used": false,
+    "enhanced_query": null,
+    "top_3_results": [
+      {
+        "variant_id": "36325",
+        "variant_name": "Allura Round Dining Table, 120cm",
+        "price": 999.0,
+        "currency": "SGD",
+        "score": 1.0
+      },
+      {
+        "variant_id": "36326",
+        "variant_name": "Allura Round Dining Table, 90cm",
+        "price": 749.0,
+        "currency": "SGD",
+        "score": 0.9049
+      },
+      {
+        "variant_id": "36327",
+        "variant_name": "Allura Round Dining Table, 150cm",
+        "price": 1249.0,
+        "currency": "SGD",
+        "score": 0.8853
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:53:29.970829",
+    "search_type": "text",
+    "query": "dining table less than $750",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 830,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "price_max": 750.0,
+      "categories": [
+        "Dining Table"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "dining table less than $750",
+    "top_3_results": [
+      {
+        "variant_id": "3053",
+        "variant_name": "Seb Dining Table, 150cm",
+        "price": 699.0,
+        "currency": "SGD",
+        "score": 0.0328
+      },
+      {
+        "variant_id": "35580",
+        "variant_name": "Tribeca Round Dining Table, 90cm, White Wash",
+        "price": 499.0,
+        "currency": "SGD",
+        "score": 0.0313
+      },
+      {
+        "variant_id": "36114",
+        "variant_name": "Avery Ottoman, (Performance Infinity Boucle) Ginger",
+        "price": 199.0,
+        "currency": "SGD",
+        "score": 0.0161
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:54:12.267837",
+    "search_type": "text",
+    "query": "dining-table less than $750",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 1074,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "price_max": 750.0
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "dining-table less than $750",
+    "top_3_results": [
+      {
+        "variant_id": "3053",
+        "variant_name": "Seb Dining Table, 150cm",
+        "price": 699.0,
+        "currency": "SGD",
+        "score": 0.0328
+      },
+      {
+        "variant_id": "35580",
+        "variant_name": "Tribeca Round Dining Table, 90cm, White Wash",
+        "price": 499.0,
+        "currency": "SGD",
+        "score": 0.0313
+      },
+      {
+        "variant_id": "36114",
+        "variant_name": "Avery Ottoman, (Performance Infinity Boucle) Ginger",
+        "price": 199.0,
+        "currency": "SGD",
+        "score": 0.0161
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:54:43.342391",
+    "search_type": "text",
+    "query": "gray sofa under $2000",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 871,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "price_max": 2000.0,
+      "colors": [
+        "Gray"
+      ],
+      "categories": [
+        "Sofa"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "gray sofa under $2000",
+    "top_3_results": [
+      {
+        "variant_id": "34470",
+        "variant_name": "Jonathan Sofa Customized, (Twill) Charcoal Grey",
+        "price": 1798.0,
+        "currency": "SGD",
+        "score": 0.0164
+      },
+      {
+        "variant_id": "34876",
+        "variant_name": "Perga Area Rug, Gray, 153 x 244cm",
+        "price": 399.0,
+        "currency": "SGD",
+        "score": 0.0164
+      },
+      {
+        "variant_id": "33810",
+        "variant_name": "Jonathan Right Arm Sofa Customized, (Twill) Charcoal Grey",
+        "price": 899.0,
+        "currency": "SGD",
+        "score": 0.0161
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:55:03.680650",
+    "search_type": "text",
+    "query": "brown leather sofa",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 943,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "colors": [
+        "Brown"
+      ],
+      "materials": [
+        "Leather"
+      ],
+      "categories": [
+        "Sofa"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "brown leather sofa",
+    "top_3_results": [
+      {
+        "variant_id": "31455",
+        "variant_name": "Jonathan Leather Sofa, Warm Taupe",
+        "price": 2398.0,
+        "currency": "SGD",
+        "score": 0.0304
+      },
+      {
+        "variant_id": "31454",
+        "variant_name": "Jonathan Leather Sofa, Caramel",
+        "price": 2398.0,
+        "currency": "SGD",
+        "score": 0.0291
+      },
+      {
+        "variant_id": "27875",
+        "variant_name": "Jonathan Leather Corner Sofa, Warm Taupe",
+        "price": 1299.0,
+        "currency": "SGD",
+        "score": 0.0244
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:55:42.492612",
+    "search_type": "image",
+    "query": "[image_upload]",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 456,
+    "search_mode": "",
+    "filters_applied": {},
+    "llm_fallback_used": false,
+    "enhanced_query": null,
+    "top_3_results": [
+      {
+        "variant_id": "36325",
+        "variant_name": "Allura Round Dining Table, 120cm",
+        "price": 999.0,
+        "currency": "SGD",
+        "score": 1.0
+      },
+      {
+        "variant_id": "36326",
+        "variant_name": "Allura Round Dining Table, 90cm",
+        "price": 749.0,
+        "currency": "SGD",
+        "score": 0.9049
+      },
+      {
+        "variant_id": "36327",
+        "variant_name": "Allura Round Dining Table, 150cm",
+        "price": 1249.0,
+        "currency": "SGD",
+        "score": 0.8853
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:58:38.023111",
+    "search_type": "text",
+    "query": "brown leather sofa under $1200",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 790,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "price_max": 1200.0,
+      "colors": [
+        "Brown"
+      ],
+      "materials": [
+        "Leather"
+      ],
+      "categories": [
+        "Sofa"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "brown leather sofa under $1200",
+    "top_3_results": [
+      {
+        "variant_id": "27877",
+        "variant_name": "Jonathan Leather Armless Sofa, Caramel",
+        "price": 1049.0,
+        "currency": "SGD",
+        "score": 0.0285
+      },
+      {
+        "variant_id": "27878",
+        "variant_name": "Jonathan Leather Armless Sofa, Warm Taupe",
+        "price": 1049.0,
+        "currency": "SGD",
+        "score": 0.0271
+      },
+      {
+        "variant_id": "27890",
+        "variant_name": "Jonathan Leather Left Arm Sofa, Warm Taupe",
+        "price": 1199.0,
+        "currency": "SGD",
+        "score": 0.027
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:59:26.518512",
+    "search_type": "text",
+    "query": "grey sofa under $2000",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 856,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "price_max": 2000.0,
+      "colors": [
+        "Grey"
+      ],
+      "categories": [
+        "Sofa"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "grey sofa under $2000",
+    "top_3_results": [
+      {
+        "variant_id": "34470",
+        "variant_name": "Jonathan Sofa Customized, (Twill) Charcoal Grey",
+        "price": 1798.0,
+        "currency": "SGD",
+        "score": 0.0323
+      },
+      {
+        "variant_id": "26757",
+        "variant_name": "Elias Corner Sofa, Heron Grey",
+        "price": 419.0,
+        "currency": "SGD",
+        "score": 0.0323
+      },
+      {
+        "variant_id": "34477",
+        "variant_name": "Jonathan Sofa Customized, (Cheyenne) Nickel Grey",
+        "price": 1798.0,
+        "currency": "SGD",
+        "score": 0.0318
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:59:38.500025",
+    "search_type": "text",
+    "query": "black dinner table",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 832,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "colors": [
+        "Black"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "black dinner table",
+    "top_3_results": [
+      {
+        "variant_id": "33323",
+        "variant_name": "Sofa Armrest Table, Black",
+        "price": 139.0,
+        "currency": "SGD",
+        "score": 0.029
+      },
+      {
+        "variant_id": "36038",
+        "variant_name": "Anya Dining Chair, Black",
+        "price": 598.0,
+        "currency": "SGD",
+        "score": 0.0259
+      },
+      {
+        "variant_id": "34654",
+        "variant_name": "Bradley Dining Table 220cm with Dining Bench 180cm Set, Ebony",
+        "price": 1109.0,
+        "currency": "SGD",
+        "score": 0.0164
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-01-29T19:59:49.227006",
+    "search_type": "text",
+    "query": "black dining  table",
+    "status": "success",
+    "total_results": 50,
+    "response_time_ms": 823,
+    "search_mode": "hybrid",
+    "filters_applied": {
+      "colors": [
+        "Black"
+      ]
+    },
+    "llm_fallback_used": false,
+    "enhanced_query": "black dining  table",
+    "top_3_results": [
+      {
+        "variant_id": "36038",
+        "variant_name": "Anya Dining Chair, Black",
+        "price": 598.0,
+        "currency": "SGD",
+        "score": 0.0278
+      },
+      {
+        "variant_id": "33377",
+        "variant_name": "Bradley Rectangular Dining Table 220cm, Ebony",
+        "price": 839.0,
+        "currency": "SGD",
+        "score": 0.0276
+      },
+      {
+        "variant_id": "33295",
+        "variant_name": "Harper Dining Table 180cm, Chestnut",
+        "price": 1499.0,
+        "currency": "SGD",
+        "score": 0.0241
+      }
+    ]
+  }
+]
