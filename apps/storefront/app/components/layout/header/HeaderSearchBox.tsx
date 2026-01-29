@@ -6,8 +6,8 @@
  *
  * @module app/components/layout/header/HeaderSearchBox
  */
-import { type FC, useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { type FC, useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router';
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
 
@@ -22,59 +22,58 @@ export interface HeaderSearchBoxProps {
  * HeaderSearchBox Component
  *
  * A compact search input for the header that:
- * - Shows a search icon button on mobile
- * - Expands to full input on desktop
+ * - Shows a search icon button on mobile (navigates directly to search page)
+ * - Shows an always-visible search input on desktop
  * - Navigates to /search page with query on submit
+ * - Preserves search term from URL when on search page
  */
-export const HeaderSearchBox: FC<HeaderSearchBoxProps> = ({ className, placeholder = 'Search products...' }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+export const HeaderSearchBox: FC<HeaderSearchBoxProps> = ({ className, placeholder = 'Search...' }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Focus input when expanded
+  // Sync search term from URL when on search page
   useEffect(() => {
-    if (isExpanded && inputRef.current) {
-      inputRef.current.focus();
+    if (location.pathname === '/search') {
+      const params = new URLSearchParams(location.search);
+      const q = params.get('q') || '';
+      setSearchTerm(q);
     }
-  }, [isExpanded]);
+  }, [location.pathname, location.search]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
-      setSearchTerm('');
-      setIsExpanded(false);
-    } else {
-      navigate('/search');
-    }
-  };
-
-  const handleIconClick = () => {
-    if (isExpanded && searchTerm.trim()) {
-      handleSubmit(new Event('submit') as unknown as React.FormEvent);
-    } else {
-      setIsExpanded(true);
-    }
-  };
-
-  const handleClear = () => {
-    setSearchTerm('');
-    setIsExpanded(false);
-  };
-
-  const handleBlur = () => {
-    // Delay to allow click events to fire
-    setTimeout(() => {
-      if (!searchTerm.trim()) {
-        setIsExpanded(false);
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const trimmedTerm = searchTerm.trim();
+      if (trimmedTerm) {
+        navigate(`/search?q=${encodeURIComponent(trimmedTerm)}`);
+      } else {
+        navigate('/search');
       }
-    }, 200);
-  };
+      // Blur input after submit
+      inputRef.current?.blur();
+    },
+    [searchTerm, navigate],
+  );
+
+  const handleClear = useCallback(() => {
+    setSearchTerm('');
+    inputRef.current?.focus();
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setSearchTerm('');
+      inputRef.current?.blur();
+    }
+  }, []);
 
   return (
-    <div className={clsx('relative flex items-center', className)}>
-      {/* Mobile: Icon button only */}
+    <div ref={containerRef} className={clsx('relative flex items-center', className)}>
+      {/* Mobile: Icon button that navigates to search page */}
       <button
         type="button"
         onClick={() => navigate('/search')}
@@ -84,53 +83,51 @@ export const HeaderSearchBox: FC<HeaderSearchBoxProps> = ({ className, placehold
         <MagnifyingGlassIcon className="h-5 w-5" />
       </button>
 
-      {/* Desktop: Expandable search input */}
-      <div className="hidden md:flex items-center">
-        <form onSubmit={handleSubmit} className="relative flex items-center">
-          <div
+      {/* Desktop: Always visible search input */}
+      <form onSubmit={handleSubmit} className="hidden md:block">
+        <div className="relative">
+          <input
+            ref={inputRef}
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
             className={clsx(
-              'flex items-center transition-all duration-200 ease-in-out overflow-hidden',
-              isExpanded ? 'w-64' : 'w-10',
+              'w-48 lg:w-56 pl-9 pr-8 py-2 text-sm bg-gray-50 border rounded-full',
+              'placeholder-gray-400 text-gray-900',
+              'transition-all duration-200',
+              isFocused
+                ? 'border-gray-400 ring-1 ring-gray-400 bg-white w-64 lg:w-72'
+                : 'border-gray-200 hover:border-gray-300',
             )}
+            aria-label="Search products"
+          />
+
+          {/* Search Icon */}
+          <button
+            type="submit"
+            className="absolute left-0 inset-y-0 flex items-center pl-3 text-gray-400 hover:text-gray-600"
+            aria-label="Submit search"
           >
+            <MagnifyingGlassIcon className="h-4 w-4" />
+          </button>
+
+          {/* Clear Button */}
+          {searchTerm && (
             <button
               type="button"
-              onClick={handleIconClick}
-              className="absolute left-0 p-2 text-gray-500 hover:text-gray-700 z-10"
-              aria-label={isExpanded ? 'Submit search' : 'Open search'}
+              onClick={handleClear}
+              className="absolute right-0 inset-y-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+              aria-label="Clear search"
             >
-              <MagnifyingGlassIcon className="h-5 w-5" />
+              <XMarkIcon className="h-4 w-4" />
             </button>
-
-            <input
-              ref={inputRef}
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onBlur={handleBlur}
-              placeholder={placeholder}
-              className={clsx(
-                'w-full pl-10 pr-8 py-2 text-sm border border-gray-200 rounded-full',
-                'focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400',
-                'transition-all duration-200',
-                isExpanded ? 'opacity-100' : 'opacity-0',
-              )}
-              aria-label="Search products"
-            />
-
-            {isExpanded && searchTerm && (
-              <button
-                type="button"
-                onClick={handleClear}
-                className="absolute right-2 p-1 text-gray-400 hover:text-gray-600"
-                aria-label="Clear search"
-              >
-                <XMarkIcon className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
+          )}
+        </div>
+      </form>
     </div>
   );
 };

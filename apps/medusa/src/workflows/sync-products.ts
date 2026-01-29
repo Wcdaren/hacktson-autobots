@@ -166,10 +166,10 @@ export const syncProductsWorkflow = createWorkflow('sync-products', (input: Sync
     },
   );
 
-  // Step 3: Generate embeddings for published products (if enabled)
+  // Step 3: Generate embeddings for published products (text + image)
   const { products: productsWithEmbeddings } = generateEmbeddingsStep({
     products: publishedProducts,
-    generateImageEmbeddings: false,
+    generateImageEmbeddings: true,
   });
 
   // Step 4: Index published products (with embeddings) to OpenSearch

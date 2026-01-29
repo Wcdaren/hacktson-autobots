@@ -16,13 +16,15 @@ interface BrowseProductsBody {
   from?: number;
   filters?: Record<string, unknown>;
   sort?: { field: string; order: 'asc' | 'desc' };
+  /** Region ID for region-aware pricing (e.g., "reg_us", "reg_eu") */
+  regionId?: string;
 }
 
 export async function POST(req: MedusaRequest<BrowseProductsBody>, res: MedusaResponse) {
   const startTime = Date.now();
 
   try {
-    const { size = 20, from = 0, filters, sort } = req.body;
+    const { size = 20, from = 0, filters, sort, regionId } = req.body;
 
     const opensearchService = req.scope.resolve<OpenSearchModuleService>(OPENSEARCH_MODULE);
 
@@ -32,6 +34,7 @@ export async function POST(req: MedusaRequest<BrowseProductsBody>, res: MedusaRe
       from,
       filters,
       sort,
+      regionId,
     });
 
     const responseTime = Date.now() - startTime;
@@ -43,6 +46,7 @@ export async function POST(req: MedusaRequest<BrowseProductsBody>, res: MedusaRe
       meta: {
         total,
         responseTimeMs: responseTime,
+        regionId,
       },
     });
   } catch (error) {

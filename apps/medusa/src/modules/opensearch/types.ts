@@ -63,10 +63,16 @@ export type ProductDocument = {
   is_giftcard: boolean;
   /** Whether product is discountable */
   discountable: boolean;
-  /** Array of category IDs the product belongs to */
+  /** Array of category IDs the product belongs to (includes all ancestor IDs for hierarchical filtering) */
   category_ids: string[];
-  /** Array of category names for faceted filtering */
+  /** Array of category names for faceted filtering (includes all ancestor names) */
   category_names: string[];
+  /** Full category path string (e.g., "Furniture > Living Room > Sofas") */
+  category_path: string;
+  /** Depth level of the most specific category (0-indexed, root = 0) */
+  category_level: number;
+  /** Direct parent category ID (null for root categories) */
+  category_parent_id: string | null;
   /** Array of collection IDs the product belongs to */
   collection_ids: string[];
   /** Array of collection names for faceted filtering */
@@ -110,6 +116,22 @@ export type ProductDocument = {
   image_embedding?: number[];
   /** ISO date string when embeddings were last updated */
   embedding_updated_at?: string;
+
+  // Per-region pricing fields (dynamically named)
+  // These fields store min_price per region for region-aware pricing
+  // Format: price_reg_{regionId} and currency_reg_{regionId}
+  // Example: price_reg_us, price_reg_eu, currency_reg_us, currency_reg_eu
+
+  /** Default/fallback price when region-specific price is not available (in cents) */
+  default_price: number;
+  /** Default/fallback currency code */
+  default_currency: string;
+} & {
+  /** Per-region minimum price fields (e.g., price_reg_us, price_reg_eu) */
+  [key: `price_reg_${string}`]: number | undefined;
+} & {
+  /** Per-region currency code fields (e.g., currency_reg_us, currency_reg_eu) */
+  [key: `currency_reg_${string}`]: string | undefined;
 };
 
 /**
@@ -122,6 +144,8 @@ export type SemanticSearchOptions = {
   filters?: Record<string, unknown>;
   /** Minimum similarity score (0-1) */
   minScore?: number;
+  /** Region ID for region-aware pricing (e.g., "reg_us", "reg_eu") */
+  regionId?: string;
 };
 
 /**
@@ -134,6 +158,8 @@ export type ImageSearchOptions = {
   filters?: Record<string, unknown>;
   /** Minimum similarity score (0-1) */
   minScore?: number;
+  /** Region ID for region-aware pricing (e.g., "reg_us", "reg_eu") */
+  regionId?: string;
 };
 
 /**
@@ -148,6 +174,8 @@ export type HybridSearchOptions = {
   keywordWeight?: number;
   /** Weight for semantic search (0-1) */
   semanticWeight?: number;
+  /** Region ID for region-aware pricing (e.g., "reg_us", "reg_eu") */
+  regionId?: string;
 };
 
 /**
@@ -162,6 +190,8 @@ export type BrowseOptions = {
   filters?: Record<string, unknown>;
   /** Sort configuration */
   sort?: { field: string; order: 'asc' | 'desc' };
+  /** Region ID for region-aware pricing (e.g., "reg_us", "reg_eu") */
+  regionId?: string;
 };
 
 /**
@@ -176,6 +206,10 @@ export type SearchResult = {
   matchType: 'exact' | 'semantic' | 'visual' | 'hybrid';
   /** Similarity score for vector matches (0-1) */
   similarityScore?: number;
+  /** Region-specific price (in cents) - uses region price if available, falls back to default_price */
+  regionPrice?: number;
+  /** Region-specific currency code - uses region currency if available, falls back to default_currency */
+  regionCurrency?: string;
 };
 
 /**

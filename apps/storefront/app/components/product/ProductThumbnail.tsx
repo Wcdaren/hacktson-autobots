@@ -16,7 +16,7 @@ export const ProductThumbnail: FC<ProductThumbnailProps> = ({ product, className
     <figure
       className={clsx(
         'product-thumbnail',
-        'aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg border border-black border-opacity-5',
+        'aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg border border-black border-opacity-5 bg-white',
         className,
       )}
       style={{
@@ -29,7 +29,7 @@ export const ProductThumbnail: FC<ProductThumbnailProps> = ({ product, className
           loading="lazy"
           src={hoverImage}
           alt={product.title}
-          className="h-full w-full object-cover object-center opacity-0 transition-all duration-300 group-hover/product-card:scale-105 group-hover/product-card:opacity-100"
+          className="h-full w-full object-contain object-center opacity-0 transition-all duration-300 group-hover/product-card:scale-105 group-hover/product-card:opacity-100"
         />
       )}
       {thumbnailImage ? (
@@ -37,13 +37,13 @@ export const ProductThumbnail: FC<ProductThumbnailProps> = ({ product, className
           loading="lazy"
           src={thumbnailImage}
           alt={product.title}
-          className={clsx('h-full w-full object-cover object-center transition-all duration-300', {
+          className={clsx('h-full w-full object-contain object-center transition-all duration-300', {
             'group-hover/product-card:opacity-0': hoverImage,
             'group-hover/product-card:opacity-75': !hoverImage,
           })}
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center object-cover object-center group-hover/product-card:opacity-75">
+        <div className="flex h-full w-full items-center justify-center bg-gray-50 text-gray-400 group-hover/product-card:opacity-75">
           No Image
         </div>
       )}

@@ -20,13 +20,15 @@ interface ImageSearchBody {
   size?: number;
   filters?: Record<string, unknown>;
   minScore?: number;
+  /** Region ID for region-aware pricing (e.g., "reg_us", "reg_eu") */
+  regionId?: string;
 }
 
 export async function POST(req: MedusaRequest<ImageSearchBody>, res: MedusaResponse) {
   const startTime = Date.now();
 
   try {
-    const { image, size = 20, filters, minScore = 0 } = req.body;
+    const { image, size = 20, filters, minScore = 0, regionId } = req.body;
 
     if (!image || typeof image !== 'string') {
       return res.status(400).json({
@@ -70,6 +72,7 @@ export async function POST(req: MedusaRequest<ImageSearchBody>, res: MedusaRespo
       size,
       filters,
       minScore,
+      regionId,
     });
 
     const responseTime = Date.now() - startTime;
@@ -83,6 +86,7 @@ export async function POST(req: MedusaRequest<ImageSearchBody>, res: MedusaRespo
         detectedLabels: embeddingResult.labels,
         total: results.length,
         responseTimeMs: responseTime,
+        regionId,
       },
     });
   } catch (error) {

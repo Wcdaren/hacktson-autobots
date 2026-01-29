@@ -12,18 +12,20 @@ import type { FC, PropsWithChildren } from 'react';
  * Current providers:
  * - StorefrontProvider: Core storefront state (regions, cart, customer)
  * - SearchProvider: Elastic Search UI context for product search
- *   - Uses hybrid mode for semantic + keyword search
+ *   - Always uses hybrid search (keyword + semantic) - transparent to users
  *   - Connects to Medusa backend for AI-powered search
+ *   - Region-aware pricing based on user's selected region
  */
 export const RootProviders: FC<PropsWithChildren> = ({ children }) => {
   const data = useRootLoaderData();
   const env = data?.env;
   const backendUrl = env?.PUBLIC_MEDUSA_API_URL || 'http://localhost:9000';
   const publishableApiKey = env?.MEDUSA_PUBLISHABLE_KEY || '';
+  const regionId = data?.region?.id;
 
   return (
     <StorefrontProvider data={storefrontInitialState}>
-      <SearchProvider initialMode="hybrid" backendUrl={backendUrl} publishableApiKey={publishableApiKey}>
+      <SearchProvider backendUrl={backendUrl} publishableApiKey={publishableApiKey} regionId={regionId}>
         {children}
       </SearchProvider>
     </StorefrontProvider>

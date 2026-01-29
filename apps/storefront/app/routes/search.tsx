@@ -7,38 +7,179 @@
  *
  * @module app/routes/search
  */
-import { Breadcrumbs } from '@app/components/common/breadcrumbs';
 import { Container } from '@app/components/common/container';
 import {
-  SearchBox,
   SearchFilters,
   ActiveFilters,
   MobileFilterDrawer,
   SearchResults,
   ImageSearchUpload,
 } from '@app/components/search';
-import { useImageSearchState } from '@app/providers/search-provider';
+import { useImageSearchState, useSearchReady } from '@app/providers/search-provider';
 import { useImageSearch } from '@app/hooks/useImageSearch';
-import HomeIcon from '@heroicons/react/24/solid/HomeIcon';
+import { withSearch } from '@elastic/react-search-ui';
 import MagnifyingGlassIcon from '@heroicons/react/24/outline/MagnifyingGlassIcon';
+import { useEffect, useState, useRef, type FC } from 'react';
+import { useSearchParams } from 'react-router';
 
 /**
- * Breadcrumb configuration for the search page
+ * Search input component that syncs with Elastic Search UI
  */
-const breadcrumbs = [
-  {
-    label: (
-      <span className="flex whitespace-nowrap">
-        <HomeIcon className="inline h-4 w-4" />
-        <span className="sr-only">Home</span>
-      </span>
-    ),
-    url: `/`,
-  },
-  {
-    label: 'Search',
-  },
-];
+interface SearchInputProps {
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  onImageSearch: (file: File) => void;
+}
+
+const SearchInputComponent: FC<SearchInputProps> = ({ searchTerm, setSearchTerm, onImageSearch }) => {
+  const [localTerm, setLocalTerm] = useState(searchTerm || '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sync local state with search term from context
+  useEffect(() => {
+    setLocalTerm(searchTerm || '');
+  }, [searchTerm]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchTerm(localTerm);
+  };
+
+  const handleClear = () => {
+    setLocalTerm('');
+    setSearchTerm('');
+    inputRef.current?.focus();
+  };
+
+  const handleCameraClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      onImageSearch(file);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="relative max-w-2xl">
+      <div className="relative">
+        <input
+          ref={inputRef}
+          type="text"
+          value={localTerm}
+          onChange={(e) => setLocalTerm(e.target.value)}
+          placeholder="Search for furniture, decor, and more..."
+          className="w-full pl-12 pr-24 py-4 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none transition-shadow"
+          aria-label="Search products"
+        />
+
+        {/* Search Icon */}
+        <div className="absolute left-4 inset-y-0 flex items-center pointer-events-none">
+          <MagnifyingGlassIcon className="h-6 w-6 text-gray-400" />
+        </div>
+
+        {/* Right side buttons */}
+        <div className="absolute right-2 inset-y-0 flex items-center gap-1">
+          {/* Clear button */}
+          {localTerm && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Clear search"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+
+          {/* Camera button for image search */}
+          <button
+            type="button"
+            onClick={handleCameraClick}
+            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            aria-label="Search by image"
+            title="Search by image"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+
+          {/* Search button */}
+          <button
+            type="submit"
+            className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            Search
+          </button>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handleFileChange}
+          className="hidden"
+          aria-hidden="true"
+        />
+      </div>
+    </form>
+  );
+};
+
+/**
+ * Connected search input that receives search context
+ */
+const ConnectedSearchInput = withSearch(({ searchTerm, setSearchTerm }) => ({
+  searchTerm,
+  setSearchTerm,
+}))(SearchInputComponent) as FC<{ onImageSearch: (file: File) => void }>;
+
+/**
+ * Component to sync URL query param with search state
+ * Watches for changes in the URL 'q' parameter and updates search state
+ */
+interface SearchSyncProps {
+  setSearchTerm: (term: string) => void;
+  searchTerm: string;
+}
+
+const SearchSyncComponent: FC<SearchSyncProps> = ({ setSearchTerm, searchTerm }) => {
+  const [searchParams] = useSearchParams();
+  const lastSyncedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+
+    // Only update if the URL param is different from what we last synced
+    // and different from the current search term
+    if (q !== lastSyncedRef.current && q !== searchTerm) {
+      lastSyncedRef.current = q;
+      setSearchTerm(q);
+    }
+  }, [searchParams, setSearchTerm, searchTerm]);
+
+  return null;
+};
+
+const ConnectedSearchSync = withSearch(({ setSearchTerm, searchTerm }) => ({
+  setSearchTerm,
+  searchTerm,
+}))(SearchSyncComponent) as FC;
 
 /**
  * Search Route Component
@@ -55,6 +196,7 @@ const breadcrumbs = [
  * Filter state is synchronized with URL parameters for shareable links.
  */
 export default function SearchRoute() {
+  const isSearchReady = useSearchReady();
   const { imageSearch, setImageSearch, clearImageSearch } = useImageSearchState();
   const {
     results: imageResults,
@@ -81,31 +223,24 @@ export default function SearchRoute() {
 
   return (
     <Container className="pb-16">
-      {/* Header with breadcrumbs */}
-      <div className="my-8 flex flex-wrap items-center justify-between gap-4">
-        <Breadcrumbs breadcrumbs={breadcrumbs} />
-      </div>
+      {/* Sync URL query param with search state */}
+      {isSearchReady && <ConnectedSearchSync />}
 
       {/* Search Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <MagnifyingGlassIcon className="h-8 w-8 text-gray-400" />
-          <h1 className="text-2xl font-semibold text-gray-900">Search Products</h1>
-        </div>
-        <p className="text-gray-600">
-          Find exactly what you're looking for with our powerful search. Try semantic search or upload an image to find
-          similar products.
+      <div className="py-8 md:py-12">
+        <h1 className="text-3xl md:text-4xl font-light text-gray-900 mb-2">Search Products</h1>
+        <p className="text-gray-500 mb-6">
+          Find exactly what you're looking for. Try semantic search or upload an image.
         </p>
-      </div>
 
-      {/* Search Box with Image Search */}
-      <div className="mb-6">
-        <SearchBox
-          placeholder="Search for furniture, decor, and more..."
-          className="max-w-2xl"
-          enableImageSearch={true}
-          onImageSearch={handleImageSearch}
-        />
+        {/* Search Box */}
+        {isSearchReady ? (
+          <ConnectedSearchInput onImageSearch={handleImageSearch} />
+        ) : (
+          <div className="max-w-2xl">
+            <div className="w-full h-14 bg-gray-100 rounded-xl animate-pulse" />
+          </div>
+        )}
       </div>
 
       {/* Image Search Upload Area - shown when image search is active */}
@@ -138,15 +273,17 @@ export default function SearchRoute() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {imageResults.slice(0, 10).map((result) => (
               <a key={result.document.id} href={`/products/${result.document.handle}`} className="group block">
-                <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
+                <div className="aspect-square overflow-hidden rounded-lg">
                   {result.document.thumbnail ? (
                     <img
                       src={result.document.thumbnail}
                       alt={result.document.title}
-                      className="h-full w-full object-cover object-center transition-transform group-hover:scale-105"
+                      className="h-full w-full object-contain object-center transition-transform group-hover:scale-105"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-gray-400">No image</div>
+                    <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
+                      No image
+                    </div>
                   )}
                 </div>
                 <h4 className="mt-2 text-sm font-medium text-gray-900 line-clamp-2">{result.document.title}</h4>

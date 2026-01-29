@@ -17,9 +17,11 @@ import type { SearchResult } from '@elastic/search-ui';
 import type { FC } from 'react';
 import clsx from 'clsx';
 import { Link } from 'react-router';
-import { ProductListItem } from '@app/components/product/ProductListItem';
+import { ProductBadges } from '@app/components/product/ProductBadges';
+import { ProductThumbnail } from '@app/components/product/ProductThumbnail';
 import type { StoreProduct } from '@medusajs/types';
 import { useSearchReady, useImageSearchState } from '@app/providers/search-provider';
+import { formatPrice } from '@libs/util/prices';
 
 /**
  * Props for the SearchResults component
@@ -50,22 +52,24 @@ interface SearchResultsWithSearchProps extends SearchResultsProps {
 }
 
 /**
- * Match type for search results
- */
-export type MatchType = 'exact' | 'semantic' | 'visual' | 'hybrid';
-
-/**
- * Enhanced search result with match type and similarity score
+ * Enhanced search result
+ * Note: matchType and similarityScore are kept internally for potential analytics
+ * but are NOT displayed to users (search is transparent per design requirements)
  */
 export interface EnhancedSearchResult {
   product: StoreProduct;
-  matchType: MatchType;
-  similarityScore?: number;
+  /** Minimum price for the product (used for "From $XXX" display) */
+  minPrice?: number;
+  /** Currency code for price formatting */
+  currencyCode?: string;
 }
 
 /**
  * Transform a search result into a StoreProduct-compatible object
  * Maps OpenSearch indexed fields to the ProductListItem expected format
+ *
+ * Note: match_type and similarity_score from _meta are intentionally NOT exposed
+ * to the UI - search is transparent to users per design requirements
  */
 function transformResultToProduct(result: SearchResult): EnhancedSearchResult {
   // Safely extract raw values, handling undefined and complex objects
@@ -83,11 +87,6 @@ function transformResultToProduct(result: SearchResult): EnhancedSearchResult {
   const priceValue = typeof minPrice === 'number' ? minPrice : typeof price === 'number' ? price : 0;
 
   const currencyCode = getRawValue(result.currency_code) || 'usd';
-
-  // Determine match type from result metadata
-  const matchType = (getRawValue(result.match_type) as MatchType) || 'exact';
-  const similarityScore =
-    typeof getRawValue(result.similarity_score) === 'number' ? getRawValue(result.similarity_score) : undefined;
 
   // Safely get string values
   const id = String(getRawValue(result.id) || '');
@@ -112,40 +111,23 @@ function transformResultToProduct(result: SearchResult): EnhancedSearchResult {
     ],
   } as StoreProduct;
 
-  return { product, matchType, similarityScore };
+  return {
+    product,
+    minPrice: priceValue,
+    currencyCode: String(currencyCode),
+  };
 }
 
 /**
- * Match type badge component
- */
-const MatchTypeBadge: FC<{ matchType: MatchType; similarityScore?: number }> = ({ matchType, similarityScore }) => {
-  const badgeConfig = {
-    exact: { label: 'Exact Match', className: 'bg-green-100 text-green-800' },
-    semantic: { label: 'Semantic', className: 'bg-blue-100 text-blue-800' },
-    visual: { label: 'Visual Match', className: 'bg-purple-100 text-purple-800' },
-    hybrid: { label: 'Hybrid', className: 'bg-orange-100 text-orange-800' },
-  };
-
-  const config = badgeConfig[matchType];
-
-  return (
-    <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
-      <span className={clsx('px-2 py-0.5 text-xs font-medium rounded-full', config.className)}>{config.label}</span>
-      {similarityScore !== undefined && (
-        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
-          {Math.round(similarityScore * 100)}%
-        </span>
-      )}
-    </div>
-  );
-};
-
-/**
  * Custom result view that wraps ProductListItem with a link
+ *
+ * Note: Match type badges have been intentionally removed per design requirements.
+ * Search is transparent to users - they don't see "exact match" vs "semantic match" labels.
+ * Price is displayed as "From $XXX" format using the minimum variant price.
  */
 const ResultView: FC<{ result: SearchResult }> = ({ result }) => {
   try {
-    const { product, matchType, similarityScore } = transformResultToProduct(result);
+    const { product, minPrice, currencyCode } = transformResultToProduct(result);
     const handle = product.handle;
 
     // Validate that we have required data
@@ -157,17 +139,44 @@ const ResultView: FC<{ result: SearchResult }> = ({ result }) => {
     return (
       <Link
         to={`/products/${handle}`}
-        className="block relative transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
+        className="block transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
         aria-label={`View ${product.title}`}
       >
-        {matchType !== 'exact' && <MatchTypeBadge matchType={matchType} similarityScore={similarityScore} />}
-        <ProductListItem product={product} />
+        <SearchResultItem product={product} minPrice={minPrice} currencyCode={currencyCode} />
       </Link>
     );
   } catch (error) {
     console.error('Error rendering search result:', error, result);
     return null;
   }
+};
+
+/**
+ * Search result item component that displays product with "From $XXX" pricing
+ * This is a specialized version of ProductListItem for search results
+ */
+interface SearchResultItemProps {
+  product: StoreProduct;
+  minPrice?: number;
+  currencyCode?: string;
+}
+
+const SearchResultItem: FC<SearchResultItemProps> = ({ product, minPrice, currencyCode = 'usd' }) => {
+  // Format the price with "From" prefix for search results
+  const formattedPrice =
+    minPrice !== undefined && minPrice > 0 ? `From ${formatPrice(minPrice, { currency: currencyCode })}` : null;
+
+  return (
+    <article className="group/product-card text-left">
+      <div className="relative">
+        <ProductBadges className="absolute right-2 top-2 z-10 flex gap-2" product={product} />
+        <ProductThumbnail product={product} />
+      </div>
+
+      <h4 className="mt-4 overflow-hidden text-ellipsis text-sm font-bold">{product.title}</h4>
+      {formattedPrice && <p className="mt-1 text-lg font-light text-gray-600">{formattedPrice}</p>}
+    </article>
+  );
 };
 
 /**
@@ -565,4 +574,4 @@ export const SearchResults: FC<SearchResultsProps> = (props) => {
 /**
  * Export the unwrapped component for testing purposes
  */
-export { SearchResultsComponent, LoadingSkeleton, EmptyState, ResultView, MatchTypeBadge, ImageSearchIndicator };
+export { SearchResultsComponent, LoadingSkeleton, EmptyState, ResultView, ImageSearchIndicator };

@@ -24,6 +24,8 @@ export interface HybridSearchConnectorConfig {
   backendUrl: string;
   /** Medusa publishable API key */
   publishableApiKey?: string;
+  /** User's region ID for price field selection */
+  regionId?: string;
   /** Whether to enable semantic search */
   enableSemanticSearch?: boolean;
   /** Weight for keyword search (0-1) */
@@ -79,6 +81,7 @@ interface HybridSearchResponse {
 const DEFAULT_CONFIG: Required<HybridSearchConnectorConfig> = {
   backendUrl: 'http://localhost:9000',
   publishableApiKey: '',
+  regionId: '',
   enableSemanticSearch: true,
   keywordWeight: 0.5,
   semanticWeight: 0.5,
@@ -167,6 +170,7 @@ export function createHybridSearchConnector(config: Partial<HybridSearchConnecto
             body: JSON.stringify({
               size: resultsPerPage,
               filters: buildFilters(state.filters),
+              regionId: mergedConfig.regionId || undefined,
             }),
           });
 
@@ -241,6 +245,7 @@ export function createHybridSearchConnector(config: Partial<HybridSearchConnecto
             keywordWeight: mergedConfig.keywordWeight,
             semanticWeight: mergedConfig.semanticWeight,
             filters: buildFilters(state.filters),
+            regionId: mergedConfig.regionId || undefined,
           }),
         });
 
@@ -316,6 +321,7 @@ export function createHybridSearchConnector(config: Partial<HybridSearchConnecto
           body: JSON.stringify({
             query: searchTerm,
             size: 5,
+            regionId: mergedConfig.regionId || undefined,
           }),
         });
 

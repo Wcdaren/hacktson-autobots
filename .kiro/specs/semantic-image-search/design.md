@@ -1,39 +1,11 @@
 # Semantic Search and Image Search Technical Design
 
-## Compatibility with Existing UI Library
+## Design Principles
 
-### @elastic/react-search-ui Integration Strategy
-
-The existing project uses `@elastic/react-search-ui` as the search UI framework. This library supports **Custom Connectors**, which we will leverage:
-
-1. **Retain existing components** - SearchBox, SearchResults, SearchFilters, Paging, etc. continue to be used
-2. **Extend connector** - Create custom connector to handle semantic search logic on the backend
-3. **Transparent upgrade** - Minimal frontend code changes, mainly backend API and connector extensions
-
-### Implementation Approach
-
-```typescript
-// Extend existing connector to add semantic search support
-function createHybridSearchConnector(): APIConnector {
-  return {
-    async onSearch(state, queryConfig) {
-      // 1. Call backend hybrid search API
-      // 2. Backend processing: keyword search + vector search
-      // 3. Return merged results
-    },
-    async onAutocomplete(state, queryConfig) {
-      // Maintain existing autocomplete logic
-    }
-  };
-}
-```
-
-### Image Search Integration
-
-Image search added as **independent functionality** to SearchBox component:
-- Add camera icon button
-- After image upload, call separate image search API
-- Results managed through SearchProvider's `setSearchTerm` or custom state management
+1. **Transparent to Users** - Users don't need to know about "semantic" vs "keyword" search; hybrid search is the default and only mode
+2. **Region-Aware Pricing** - Search results display correct prices based on user's selected region
+3. **Simple UX Flow** - Header search → Search results page with filters
+4. **No Match Type Display** - Users don't see "exact match" vs "semantic match" labels
 
 ## Architecture Overview
 
@@ -41,16 +13,16 @@ Image search added as **independent functionality** to SearchBox component:
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Storefront (Remix)                        │
 ├─────────────────────────────────────────────────────────────────┤
-│  SearchBox          │  ImageUpload        │  SearchResults       │
-│  (Text+Semantic)    │  (Image Upload)     │  (Hybrid Results)    │
+│  Header SearchBox   │  Search Page        │  SearchResults       │
+│  (Quick Search)     │  (Full Search+Image)│  (Region Prices)     │
 └─────────────────────┴─────────────────────┴─────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Medusa Backend API                          │
 ├─────────────────────────────────────────────────────────────────┤
-│  /api/store/search/semantic   │  /api/store/search/image        │
-│  (Semantic Search Endpoint)   │  (Image Search Endpoint)        │
+│  /store/search/hybrid         │  /store/search/image            │
+│  (Default Search - Always)    │  (Image Search Endpoint)        │
 └───────────────────────────────┴─────────────────────────────────┘
                               │
               ┌───────────────┼───────────────┐
@@ -61,11 +33,164 @@ Image search added as **independent functionality** to SearchBox component:
 └─────────────────┘ └─────────────────┘ └─────────────────┘
 ```
 
+## Region-Aware Pricing Design
+
+### Problem
+- Products have different prices in different regions (US, EU, UK, etc.)
+- Search results need to display the correct price for the user's current region
+- Price range filters need to work correctly per region
+
+### Solution: Per-Region Price Fields
+
+Instead of storing prices in a nested object, we create separate fields for each region:
+
+```typescript
+// OpenSearch ProductDocument
+{
+  id: "prod_123",
+  title: "Modern Sofa",
+  // ... other fields
+  
+  // Per-region prices (min_price only, in cents)
+  price_reg_us: 150000,      // $1,500 USD
+  price_reg_eu: 135000,      // €1,350 EUR  
+  price_reg_uk: 120000,      // £1,200 GBP
+  
+  // Per-region currency codes
+  currency_reg_us: "usd",
+  currency_reg_eu: "eur",
+  currency_reg_uk: "gbp",
+  
+  // Default price (fallback)
+  default_price: 150000,
+  default_currency: "usd",
+}
+```
+
+### Why min_price Only (No max_price)
+
+- **Simpler index structure** - Less data to maintain
+- **Better UX** - Display "From $1,500" in search results
+- **Intuitive filtering** - When user selects "$1,000-$2,000", they expect products starting at that price range
+- **Detailed pricing on product page** - Users see all variant prices when they click through
+
+### Search Query with Region
+
+```typescript
+// Frontend passes regionId to search API
+const response = await fetch('/store/search/hybrid', {
+  method: 'POST',
+  body: JSON.stringify({
+    query: "comfortable sofa",
+    regionId: "reg_us",  // Current user's region
+    size: 20,
+  })
+});
+
+// Backend dynamically selects price field
+const priceField = `price_reg_${regionId}`;
+const currencyField = `currency_reg_${regionId}`;
+```
+
+### Price Range Facet per Region
+
+```typescript
+// Dynamic aggregation based on region
+const aggregations = {
+  price_ranges: {
+    range: {
+      field: `price_reg_${regionId}`,
+      ranges: [
+        { key: "Under $500", to: 50000 },
+        { key: "$500 - $1,000", from: 50000, to: 100000 },
+        { key: "$1,000 - $2,000", from: 100000, to: 200000 },
+        { key: "Over $2,000", from: 200000 },
+      ]
+    }
+  }
+};
+```
+
+## UI/UX Design
+
+### Search Flow
+
+1. **Header Search Box**
+   - Compact search input in header
+   - On submit: Navigate to `/search?q={query}`
+   - On mobile: Icon only, taps to search page
+
+2. **Search Results Page** (`/search`)
+   - Full search box with image search button (camera icon)
+   - Filters sidebar (desktop) / drawer (mobile)
+   - Results grid with pagination
+   - Price displayed as "From $XXX" per region
+
+3. **Category/Collection Listing Pages (CLP)**
+   - `/categories/:handle` and `/collections/:handle` use the same search infrastructure
+   - Pre-filter by category_id or collection_id
+   - Same facet filters as search page (excluding the pre-filtered dimension)
+   - Hierarchical category navigation for nested categories
+
+4. **Image Search**
+   - Camera icon in search box triggers file upload
+   - Drag-and-drop support
+   - Preview with loading state
+   - Results show "Visual Match" indicator
+
+### Category/Collection Page Integration
+
+Category and Collection pages should leverage the search infrastructure instead of direct Medusa API calls:
+
+```
+/categories/living-room
+  → OpenSearch browse with filter: { category_ids: ["cat_living_room"] }
+  → Show child categories as navigation chips
+  → Show facets: collections, tags, price, materials (exclude category facet)
+
+/collections/summer-sale  
+  → OpenSearch browse with filter: { collection_ids: ["col_summer"] }
+  → Show facets: categories, tags, price, materials (exclude collection facet)
+```
+
+### Hierarchical Category Facet
+
+Categories in Medusa are nested (parent_category_id). The facet should reflect this:
+
+```typescript
+// Index structure for hierarchical categories
+{
+  category_ids: ["cat_furniture", "cat_living_room", "cat_sofas"],  // All ancestor IDs
+  category_names: ["Furniture", "Living Room", "Sofas"],            // All ancestor names
+  category_path: "Furniture > Living Room > Sofas",                 // Full path string
+  category_level: 2,                                                // Depth level (0-indexed)
+  category_parent_id: "cat_living_room",                            // Direct parent
+}
+
+// Facet display as tree
+Furniture (50)
+  └─ Living Room (30)
+       └─ Sofas (15)
+       └─ Chairs (10)
+  └─ Bedroom (20)
+```
+
+### Search Results Display
+
+```tsx
+// No match type badges - transparent to users
+<ProductCard>
+  <img src={product.thumbnail} />
+  <h3>{product.title}</h3>
+  <p className="text-gray-600">From {formatPrice(product.price, product.currency)}</p>
+</ProductCard>
+```
+
 ## Component Design
 
 ### 1. Backend Components
 
-#### 1.1 Embedding Service Module (EmbeddingService)
+#### 1.1 Embedding Service Module
 
 **Location**: `apps/medusa/src/modules/embedding/`
 
@@ -89,13 +214,8 @@ export interface ImageEmbeddingResult {
 
 // service.ts
 export default class EmbeddingService {
-  // Generate text embedding vector
   async generateTextEmbedding(text: string): Promise<TextEmbeddingResult>;
-  
-  // Generate image embedding vector
   async generateImageEmbedding(imageBuffer: Buffer): Promise<ImageEmbeddingResult>;
-  
-  // Batch generate text embeddings
   async batchGenerateTextEmbeddings(texts: string[]): Promise<TextEmbeddingResult[]>;
 }
 ```
@@ -105,28 +225,46 @@ export default class EmbeddingService {
 **Update**: `apps/medusa/src/modules/opensearch/`
 
 ```typescript
-// Extend ProductDocument type
+// Updated ProductDocument type with region prices
 export interface ProductDocument {
-  // ... existing fields
+  id: string;
+  title: string;
+  description?: string;
+  handle: string;
+  thumbnail?: string;
   
-  // New vector fields
-  text_embedding: number[];      // Text embedding vector (1024 dimensions)
-  image_embedding: number[];     // Image embedding vector (1024 dimensions)
-  embedding_updated_at: string;  // Embedding update timestamp
+  // Category/Collection facets
+  category_ids: string[];
+  category_names: string[];
+  collection_ids: string[];
+  collection_names: string[];
+  
+  // Per-region prices (dynamically named fields)
+  // price_reg_{regionId}: number
+  // currency_reg_{regionId}: string
+  [key: `price_reg_${string}`]: number;
+  [key: `currency_reg_${string}`]: string;
+  
+  // Default/fallback price
+  default_price: number;
+  default_currency: string;
+  
+  // Vector embeddings
+  text_embedding?: number[];      // 1024 dimensions
+  image_embedding?: number[];     // 1024 dimensions
+  embedding_updated_at?: string;
+  
+  created_at: string;
+  updated_at: string;
 }
 
-// Extend OpenSearchModuleService
-export default class OpenSearchModuleService {
-  // ... existing methods
-  
-  // Semantic search
-  async semanticSearch(query: string, options?: SemanticSearchOptions): Promise<SearchResult[]>;
-  
-  // Image search
-  async imageSearch(embedding: number[], options?: ImageSearchOptions): Promise<SearchResult[]>;
-  
-  // Hybrid search (keyword + semantic)
-  async hybridSearch(query: string, embedding: number[], options?: HybridSearchOptions): Promise<SearchResult[]>;
+// Search options now include regionId
+export interface HybridSearchOptions {
+  size?: number;
+  filters?: Record<string, unknown>;
+  regionId: string;  // Required for price field selection
+  keywordWeight?: number;
+  semanticWeight?: number;
 }
 ```
 
@@ -136,93 +274,93 @@ export default class OpenSearchModuleService {
 
 ```
 apps/medusa/src/api/store/search/
-├── semantic/
-│   └── route.ts      # POST /store/search/semantic
+├── hybrid/
+│   └── route.ts      # POST /store/search/hybrid (default search)
 ├── image/
 │   └── route.ts      # POST /store/search/image
-└── hybrid/
-    └── route.ts      # POST /store/search/hybrid
+└── browse/
+    └── route.ts      # POST /store/search/browse (no query)
 ```
 
 ### 2. Frontend Components
 
-#### 2.1 Enhanced SearchBox Component
+#### 2.1 Search Provider (Simplified)
 
-**Location**: `apps/storefront/app/components/search/SearchBox.tsx`
+**Location**: `apps/storefront/app/providers/search-provider.tsx`
 
 ```typescript
-export interface SearchBoxProps {
-  placeholder?: string;
-  className?: string;
-  debounceLength?: number;
-  searchAsYouType?: boolean;
-  enableImageSearch?: boolean;  // New: enable image search
-  enableSemanticSearch?: boolean; // New: enable semantic search
+// Remove SearchMode - always use hybrid
+interface SearchProviderProps {
+  regionId: string;  // From root loader
+  backendUrl: string;
+  publishableApiKey?: string;
+}
+
+// No mode switching, hybrid is always used
+export const SearchProvider: FC<PropsWithChildren<SearchProviderProps>> = ({
+  children,
+  regionId,
+  backendUrl,
+  publishableApiKey,
+}) => {
+  // Always create hybrid connector with regionId
+  const connector = createHybridSearchConnector({
+    backendUrl,
+    publishableApiKey,
+    regionId,
+  });
+  
+  // ...
+};
+```
+
+#### 2.2 Hybrid Search Connector
+
+**Location**: `apps/storefront/libs/util/search/hybridSearchConnector.ts`
+
+```typescript
+export interface HybridSearchConnectorConfig {
+  backendUrl: string;
+  publishableApiKey?: string;
+  regionId: string;  // For price field selection
+}
+
+export function createHybridSearchConnector(config: HybridSearchConnectorConfig): APIConnector {
+  return {
+    async onSearch(state, queryConfig) {
+      const response = await fetch(`${config.backendUrl}/store/search/hybrid`, {
+        method: 'POST',
+        body: JSON.stringify({
+          query: state.searchTerm,
+          regionId: config.regionId,
+          size: queryConfig.resultsPerPage,
+          filters: buildFilters(state.filters),
+        }),
+      });
+      
+      // Transform results with region-specific prices
+      // ...
+    },
+  };
 }
 ```
 
-#### 2.2 Image Upload Component
-
-**Location**: `apps/storefront/app/components/search/ImageSearchUpload.tsx`
-
-```typescript
-export interface ImageSearchUploadProps {
-  onImageSelect: (file: File) => void;
-  onClear: () => void;
-  isLoading?: boolean;
-  previewUrl?: string;
-  maxSizeMB?: number;
-  acceptedFormats?: string[];
-}
-```
-
-#### 2.3 Search Results Enhancement
+#### 2.3 Search Results (Simplified)
 
 **Location**: `apps/storefront/app/components/search/SearchResults.tsx`
 
 ```typescript
-// Extend result type to display match type
-export interface EnhancedSearchResult {
-  // ... existing fields
-  matchType: 'exact' | 'semantic' | 'visual';
-  similarityScore?: number;
-}
-```
-
-### 3. Data Flow
-
-#### 3.1 Semantic Search Flow
-
-```
-1. User enters query text
-2. Frontend sends request to /store/search/hybrid
-3. Backend calls Bedrock to generate query text embedding vector
-4. Backend executes OpenSearch hybrid query:
-   - BM25 keyword matching
-   - k-NN vector similarity
-5. Merge results, sort by combined score
-6. Return results to frontend
-```
-
-#### 3.2 Image Search Flow
-
-```
-1. User uploads image
-2. Frontend previews image, sends to /store/search/image
-3. Backend calls Rekognition to extract image features
-4. Backend executes OpenSearch k-NN query
-5. Return visually similar product list
-6. Frontend displays results, supports continued filtering
-```
-
-#### 3.3 Product Indexing Flow
-
-```
-1. Product create/update triggers subscriber
-2. Subscriber calls EmbeddingService:
-   - Generate product text embedding (title + description)
-   - Generate product image embedding (thumbnail)
-3. Update OpenSearch index with vector fields
+// Remove MatchTypeBadge - no match type display
+const ResultView: FC<{ result: SearchResult }> = ({ result }) => {
+  const { product } = transformResultToProduct(result);
+  
+  return (
+    <Link to={`/products/${product.handle}`}>
+      {/* No match type badge */}
+      <ProductListItem product={product} />
+    </Link>
+  );
+};
 ```
 
 ## OpenSearch Index Mapping
@@ -231,7 +369,28 @@ export interface EnhancedSearchResult {
 {
   "mappings": {
     "properties": {
-      // ... existing field mappings
+      "id": { "type": "keyword" },
+      "title": { "type": "text", "analyzer": "standard" },
+      "description": { "type": "text" },
+      "handle": { "type": "keyword" },
+      "thumbnail": { "type": "keyword" },
+      
+      "category_ids": { "type": "keyword" },
+      "category_names": { "type": "keyword" },
+      "category_path": { "type": "keyword" },
+      "category_level": { "type": "integer" },
+      "category_parent_id": { "type": "keyword" },
+      "collection_ids": { "type": "keyword" },
+      "collection_names": { "type": "keyword" },
+      
+      "price_reg_us": { "type": "float" },
+      "price_reg_eu": { "type": "float" },
+      "price_reg_uk": { "type": "float" },
+      "currency_reg_us": { "type": "keyword" },
+      "currency_reg_eu": { "type": "keyword" },
+      "currency_reg_uk": { "type": "keyword" },
+      "default_price": { "type": "float" },
+      "default_currency": { "type": "keyword" },
       
       "text_embedding": {
         "type": "knn_vector",
@@ -239,11 +398,8 @@ export interface EnhancedSearchResult {
         "method": {
           "name": "hnsw",
           "space_type": "cosinesimil",
-          "engine": "nmslib",
-          "parameters": {
-            "ef_construction": 128,
-            "m": 24
-          }
+          "engine": "faiss",
+          "parameters": { "ef_construction": 128, "m": 24 }
         }
       },
       "image_embedding": {
@@ -252,16 +408,13 @@ export interface EnhancedSearchResult {
         "method": {
           "name": "hnsw",
           "space_type": "cosinesimil",
-          "engine": "nmslib",
-          "parameters": {
-            "ef_construction": 128,
-            "m": 24
-          }
+          "engine": "faiss",
+          "parameters": { "ef_construction": 128, "m": 24 }
         }
       },
-      "embedding_updated_at": {
-        "type": "date"
-      }
+      "embedding_updated_at": { "type": "date" },
+      "created_at": { "type": "date" },
+      "updated_at": { "type": "date" }
     }
   },
   "settings": {
@@ -273,52 +426,63 @@ export interface EnhancedSearchResult {
 }
 ```
 
-## Hybrid Search Query
+## Data Flow
 
-```json
-{
-  "size": 20,
-  "query": {
-    "hybrid": {
-      "queries": [
-        {
-          "multi_match": {
-            "query": "comfortable sofa",
-            "fields": ["title^3", "description", "category_names"]
-          }
-        },
-        {
-          "knn": {
-            "text_embedding": {
-              "vector": [0.1, 0.2, ...],
-              "k": 20
-            }
-          }
-        }
-      ]
-    }
-  }
-}
+### 1. Product Indexing Flow
+
+```
+1. Product create/update triggers subscriber
+2. Subscriber fetches product with all region prices
+3. For each region, extract min_price from variants
+4. Generate text embedding (title + description)
+5. Generate image embedding (thumbnail)
+6. Index to OpenSearch with per-region price fields
+```
+
+### 2. Search Flow
+
+```
+1. User enters query in header search box
+2. Navigate to /search?q={query}
+3. SearchProvider initializes with current regionId
+4. Connector calls /store/search/hybrid with regionId
+5. Backend:
+   a. Generate query embedding via Bedrock
+   b. Execute hybrid search (keyword + k-NN)
+   c. Select price field based on regionId
+   d. Return results with correct prices
+6. Display results with "From $XXX" pricing
+```
+
+### 3. Image Search Flow
+
+```
+1. User clicks camera icon in search box
+2. Select/drop image file
+3. Validate file (type, size)
+4. Upload to /store/search/image
+5. Backend:
+   a. Generate image embedding via Rekognition
+   b. Execute k-NN search on image_embedding
+   c. Return visually similar products
+6. Display results in search page
 ```
 
 ## Correctness Properties
 
-### P1: Search Result Ordering Correctness
-**Validates**: 1.1.2, 1.2.2, 2.2.1
+### P1: Search Result Ordering
 ```
-For any search result list results:
+For any search result list:
   results[i].score >= results[i+1].score for all i
 ```
 
-### P2: Response Time Constraint
-**Validates**: 1.1.3
+### P2: Response Time
 ```
-For any semantic search request:
+For any search request:
   responseTime < 2000ms
 ```
 
-### P3: File Validation Correctness
-**Validates**: 2.1.3
+### P3: File Validation
 ```
 For any uploaded file:
   If file.type not in ['image/jpeg', 'image/png', 'image/webp']
@@ -326,27 +490,24 @@ For any uploaded file:
   then return validation error
 ```
 
-### P4: Embedding Vector Dimension Correctness
-**Validates**: 3.1.1, 3.1.2
+### P4: Embedding Dimension
 ```
-For any generated embedding vector:
+For any generated embedding:
   embedding.length === 1024
 ```
 
-### P5: Retry Mechanism Correctness
-**Validates**: 3.2.3
+### P5: Retry Mechanism
 ```
-For any embedding generation request:
+For embedding generation:
   If failed, retry up to 3 times
-  Retry interval grows exponentially (1s, 2s, 4s)
+  Retry interval: 1s, 2s, 4s (exponential)
 ```
 
-### P6: Exact Match Priority
-**Validates**: 1.2.2
+### P6: Region Price Consistency
 ```
-For hybrid search results:
-  If result.matchType === 'exact'
-  then result.score > any semanticOnlyResult.score
+For any search result with regionId:
+  result.price === document[`price_reg_${regionId}`]
+  OR result.price === document.default_price (if region price missing)
 ```
 
 ## Testing Framework
@@ -373,39 +534,25 @@ REKOGNITION_ENABLED=true
 OPENSEARCH_KNN_ENABLED=true
 ```
 
-## Cost Estimation (100 Products)
-
-| Service | Purpose | Estimated Cost/Month |
-|---------|---------|---------------------|
-| Bedrock Titan Embeddings | Text Embedding | ~$1 |
-| Rekognition | Image Features | ~$1 |
-| OpenSearch | Vector Storage | Existing cost |
-
-**Note**: Main cost comes from real-time embedding generation during user searches. Query caching is recommended.
-
 ## Implementation Phases
 
 ### Phase 1: Infrastructure
+- Update OpenSearch index mapping with per-region price fields
+- Update product sync to index region prices
 - Create EmbeddingService module
-- Update OpenSearch index mapping
-- Add k-NN support
 
 ### Phase 2: Backend API
-- Implement semantic search endpoint
+- Update hybrid search endpoint to accept regionId
+- Update browse endpoint for region prices
 - Implement image search endpoint
-- Implement hybrid search endpoint
 
-### Phase 3: Product Indexing
-- Update product sync workflow
-- Add embedding generation subscriber
-- Implement batch index rebuild functionality
+### Phase 3: Frontend Integration
+- Simplify SearchProvider (remove mode switching)
+- Update connector to pass regionId
+- Remove match type badges from results
+- Update price display to "From $XXX"
 
-### Phase 4: Frontend Integration
-- Enhance SearchBox component
-- Add image upload component
-- Update search results display
-
-### Phase 5: Testing & Optimization
-- Write property tests
-- Performance optimization
-- Query cache implementation
+### Phase 4: Testing
+- Property-based tests for search ordering
+- Integration tests for region price filtering
+- File validation tests

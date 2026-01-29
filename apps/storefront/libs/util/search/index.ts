@@ -12,3 +12,18 @@ export {
   createSearchConnectorWithConfig,
   type SearchConnectorConfig,
 } from './connector';
+
+export {
+  createHybridSearchConnector,
+  type HybridSearchConnectorConfig,
+} from './hybridSearchConnector';
+
+export {
+  createCategorySearchConnector,
+  type CategorySearchConnectorConfig,
+} from './categorySearchConnector';
+
+export {
+  createCollectionSearchConnector,
+  type CollectionSearchConnectorConfig,
+} from './collectionSearchConnector';

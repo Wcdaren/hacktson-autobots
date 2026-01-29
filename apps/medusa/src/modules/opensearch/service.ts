@@ -193,6 +193,27 @@ export default class OpenSearchModuleService {
             },
           },
           mappings: {
+            // Dynamic templates for per-region price fields
+            dynamic_templates: [
+              {
+                price_reg_fields: {
+                  match_pattern: 'regex',
+                  match: '^price_reg_.*$',
+                  mapping: {
+                    type: 'float',
+                  },
+                },
+              },
+              {
+                currency_reg_fields: {
+                  match_pattern: 'regex',
+                  match: '^currency_reg_.*$',
+                  mapping: {
+                    type: 'keyword',
+                  },
+                },
+              },
+            ],
             properties: {
               // Primary identifier
               id: { type: 'keyword' },
@@ -228,9 +249,12 @@ export default class OpenSearchModuleService {
               type_id: { type: 'keyword' },
               type_name: { type: 'keyword' },
 
-              // Category facets
+              // Category facets (hierarchical)
               category_ids: { type: 'keyword' },
               category_names: { type: 'keyword' },
+              category_path: { type: 'keyword' },
+              category_level: { type: 'integer' },
+              category_parent_id: { type: 'keyword' },
 
               // Collection facets
               collection_ids: { type: 'keyword' },
@@ -249,6 +273,13 @@ export default class OpenSearchModuleService {
               max_price: { type: 'float' },
               price: { type: 'float' },
               currency_code: { type: 'keyword' },
+
+              // Per-region pricing fields (dynamically added during indexing)
+              // These fields follow the pattern: price_reg_{regionId} and currency_reg_{regionId}
+              // OpenSearch supports dynamic field mapping, so new region fields will be auto-mapped
+              // We define common regions here for explicit mapping
+              default_price: { type: 'float' },
+              default_currency: { type: 'keyword' },
 
               // Variant info
               variant_count: { type: 'integer' },
@@ -315,6 +346,32 @@ export default class OpenSearchModuleService {
   }
 
   /**
+   * Normalize region ID for use as field suffix
+   * Converts "reg_01ABC123" to "01abc123" (lowercase, no prefix)
+   *
+   * @param regionId - The region ID to normalize
+   * @returns Normalized region ID for field naming
+   */
+  private normalizeRegionId(regionId: string): string {
+    return regionId.replace(/^reg_/i, '').toLowerCase();
+  }
+
+  /**
+   * Get the price field name for a given region
+   * Returns the region-specific price field or falls back to default_price
+   *
+   * @param regionId - Optional region ID
+   * @returns The price field name to use
+   */
+  private getPriceFieldForRegion(regionId?: string): string {
+    if (regionId) {
+      const normalizedId = this.normalizeRegionId(regionId);
+      return `price_reg_${normalizedId}`;
+    }
+    return 'default_price';
+  }
+
+  /**
    * Check if the OpenSearch connection is healthy
    *
    * @returns True if the connection is healthy
@@ -370,7 +427,7 @@ export default class OpenSearchModuleService {
    * @returns Array of search results sorted by similarity
    */
   async semanticSearch(embedding: number[], options: SemanticSearchOptions = {}): Promise<SearchResult[]> {
-    const { size = 20, filters, minScore = 0 } = options;
+    const { size = 20, filters, minScore = 0, regionId } = options;
     const indexName = this.getIndexName('product');
 
     const indexExists = await this.client.indices.exists({ index: indexName });
@@ -405,7 +462,7 @@ export default class OpenSearchModuleService {
       body: searchBody,
     });
 
-    return this.mapSearchResults(response.body.hits.hits, 'semantic', minScore);
+    return this.mapSearchResults(response.body.hits.hits, 'semantic', minScore, regionId);
   }
 
   /**
@@ -416,7 +473,7 @@ export default class OpenSearchModuleService {
    * @returns Array of search results sorted by visual similarity
    */
   async imageSearch(embedding: number[], options: ImageSearchOptions = {}): Promise<SearchResult[]> {
-    const { size = 20, filters, minScore = 0 } = options;
+    const { size = 20, filters, minScore = 0, regionId } = options;
     const indexName = this.getIndexName('product');
 
     const indexExists = await this.client.indices.exists({ index: indexName });
@@ -451,7 +508,7 @@ export default class OpenSearchModuleService {
       body: searchBody,
     });
 
-    return this.mapSearchResults(response.body.hits.hits, 'visual', minScore);
+    return this.mapSearchResults(response.body.hits.hits, 'visual', minScore, regionId);
   }
 
   /**
@@ -459,7 +516,7 @@ export default class OpenSearchModuleService {
    *
    * @param queryText - Text query for keyword matching
    * @param embedding - Query embedding vector for semantic matching
-   * @param options - Search options
+   * @param options - Search options including regionId for region-aware pricing
    * @returns Array of search results with combined scoring
    */
   async hybridSearch(
@@ -467,7 +524,7 @@ export default class OpenSearchModuleService {
     embedding: number[],
     options: HybridSearchOptions = {},
   ): Promise<SearchResult[]> {
-    const { size = 20, filters, keywordWeight = 0.5, semanticWeight = 0.5 } = options;
+    const { size = 20, filters, keywordWeight = 0.5, semanticWeight = 0.5, regionId } = options;
     const indexName = this.getIndexName('product');
 
     const indexExists = await this.client.indices.exists({ index: indexName });
@@ -520,6 +577,7 @@ export default class OpenSearchModuleService {
       keywordWeight,
       semanticWeight,
       size,
+      regionId,
     );
   }
 
@@ -545,24 +603,76 @@ export default class OpenSearchModuleService {
 
   /**
    * Map OpenSearch hits to SearchResult format
+   * @param hits - OpenSearch hits
+   * @param matchType - Type of match
+   * @param minScore - Minimum score threshold
+   * @param regionId - Optional region ID for region-specific pricing
    */
   private mapSearchResults(
     hits: Array<{ _source: ProductDocument; _score: number }>,
     matchType: 'exact' | 'semantic' | 'visual' | 'hybrid',
     minScore: number,
+    regionId?: string,
   ): SearchResult[] {
     return hits
       .filter((hit) => hit._score >= minScore)
-      .map((hit) => ({
-        document: hit._source,
-        score: hit._score,
-        matchType,
-        similarityScore: matchType !== 'exact' ? hit._score : undefined,
-      }));
+      .map((hit) => {
+        const { price, currency } = this.getRegionPriceFromDocument(hit._source, regionId);
+        return {
+          document: hit._source,
+          score: hit._score,
+          matchType,
+          similarityScore: matchType !== 'exact' ? hit._score : undefined,
+          regionPrice: price,
+          regionCurrency: currency,
+        };
+      });
+  }
+
+  /**
+   * Extract region-specific price and currency from a product document
+   * Falls back to default_price/default_currency if region price is not available
+   *
+   * @param document - Product document
+   * @param regionId - Optional region ID
+   * @returns Object with price and currency
+   */
+  private getRegionPriceFromDocument(
+    document: ProductDocument,
+    regionId?: string,
+  ): { price: number; currency: string } {
+    if (regionId) {
+      const normalizedId = this.normalizeRegionId(regionId);
+      const priceField = `price_reg_${normalizedId}` as keyof ProductDocument;
+      const currencyField = `currency_reg_${normalizedId}` as keyof ProductDocument;
+
+      const regionPrice = document[priceField] as number | undefined;
+      const regionCurrency = document[currencyField] as string | undefined;
+
+      // Return region-specific price if available, otherwise fall back to default
+      if (regionPrice !== undefined && regionPrice !== null) {
+        return {
+          price: regionPrice,
+          currency: regionCurrency || document.default_currency || document.currency_code || 'usd',
+        };
+      }
+    }
+
+    // Fallback to default price
+    return {
+      price: document.default_price || document.min_price || 0,
+      currency: document.default_currency || document.currency_code || 'usd',
+    };
   }
 
   /**
    * Merge keyword and semantic search results with weighted scoring
+   * @param keywordHits - Keyword search hits
+   * @param semanticHits - Semantic search hits
+   * @param keywordWeight - Weight for keyword scores
+   * @param semanticWeight - Weight for semantic scores
+   * @param limit - Maximum number of results
+   * @param regionId - Optional region ID for region-specific pricing
    */
   private mergeHybridResults(
     keywordHits: Array<{ _id: string; _source: ProductDocument; _score: number }>,
@@ -570,6 +680,7 @@ export default class OpenSearchModuleService {
     keywordWeight: number,
     semanticWeight: number,
     limit: number,
+    regionId?: string,
   ): SearchResult[] {
     const scoreMap = new Map<string, { document: ProductDocument; keywordScore: number; semanticScore: number }>();
 
@@ -607,11 +718,16 @@ export default class OpenSearchModuleService {
       const matchType: 'exact' | 'semantic' | 'hybrid' =
         data.keywordScore > 0 && data.semanticScore > 0 ? 'hybrid' : data.keywordScore > 0 ? 'exact' : 'semantic';
 
+      // Get region-specific price
+      const { price, currency } = this.getRegionPriceFromDocument(data.document, regionId);
+
       results.push({
         document: data.document,
         score: combinedScore,
         matchType,
         similarityScore: data.semanticScore > 0 ? data.semanticScore : undefined,
+        regionPrice: price,
+        regionCurrency: currency,
       });
     }
 
@@ -668,11 +784,11 @@ export default class OpenSearchModuleService {
   /**
    * Browse products with facet aggregations
    *
-   * @param options - Browse options (pagination, filters, sort)
+   * @param options - Browse options (pagination, filters, sort, regionId)
    * @returns Search results with facets and total count
    */
   async browseProductsWithFacets(options: BrowseOptions = {}): Promise<SearchWithFacetsResult> {
-    const { size = 20, from = 0, filters, sort } = options;
+    const { size = 20, from = 0, filters, sort, regionId } = options;
     const indexName = this.getIndexName('product');
 
     const indexExists = await this.client.indices.exists({ index: indexName });
@@ -691,7 +807,7 @@ export default class OpenSearchModuleService {
             },
           }
         : { match_all: {} },
-      aggs: this.buildFacetAggregations(),
+      aggs: this.buildFacetAggregations(regionId),
     };
 
     // Add sorting if specified
@@ -706,11 +822,16 @@ export default class OpenSearchModuleService {
       body: searchBody,
     });
 
-    const results = response.body.hits.hits.map((hit: { _source: ProductDocument; _score: number }) => ({
-      document: hit._source,
-      score: hit._score || 1,
-      matchType: 'exact' as const,
-    }));
+    const results = response.body.hits.hits.map((hit: { _source: ProductDocument; _score: number }) => {
+      const { price, currency } = this.getRegionPriceFromDocument(hit._source, regionId);
+      return {
+        document: hit._source,
+        score: hit._score || 1,
+        matchType: 'exact' as const,
+        regionPrice: price,
+        regionCurrency: currency,
+      };
+    });
 
     const facets = this.parseFacetAggregations(response.body.aggregations || {});
     const total = response.body.hits.total?.value || response.body.hits.total || 0;
@@ -723,7 +844,7 @@ export default class OpenSearchModuleService {
    *
    * @param queryText - Text query for keyword matching
    * @param embedding - Query embedding vector for semantic matching
-   * @param options - Search options
+   * @param options - Search options including regionId for region-aware pricing
    * @returns Search results with facets and total count
    */
   async hybridSearchWithFacets(
@@ -731,7 +852,7 @@ export default class OpenSearchModuleService {
     embedding: number[],
     options: HybridSearchOptions = {},
   ): Promise<SearchWithFacetsResult> {
-    const { size = 20, filters, keywordWeight = 0.5, semanticWeight = 0.5 } = options;
+    const { size = 20, filters, keywordWeight = 0.5, semanticWeight = 0.5, regionId } = options;
     const indexName = this.getIndexName('product');
 
     const indexExists = await this.client.indices.exists({ index: indexName });
@@ -759,14 +880,14 @@ export default class OpenSearchModuleService {
       },
     };
 
-    // Execute keyword query with aggregations
+    // Execute keyword query with aggregations (using regionId for price aggregation)
     const [keywordResponse, semanticResponse] = await Promise.all([
       this.client.search({
         index: indexName,
         body: {
           size: size * 2,
           query: filters ? { bool: { must: [keywordQuery], filter: this.buildFilterQuery(filters) } } : keywordQuery,
-          aggs: this.buildFacetAggregations(),
+          aggs: this.buildFacetAggregations(regionId),
         },
       }),
       this.client.search({
@@ -785,6 +906,7 @@ export default class OpenSearchModuleService {
       keywordWeight,
       semanticWeight,
       size,
+      regionId,
     );
 
     const facets = this.parseFacetAggregations(keywordResponse.body.aggregations || {});
@@ -795,8 +917,14 @@ export default class OpenSearchModuleService {
 
   /**
    * Build facet aggregations for search queries
+   *
+   * @param regionId - Optional region ID for region-specific price aggregation
+   * @returns Aggregation configuration object
    */
-  private buildFacetAggregations(): Record<string, unknown> {
+  private buildFacetAggregations(regionId?: string): Record<string, unknown> {
+    // Determine which price field to use for aggregation
+    const priceField = this.getPriceFieldForRegion(regionId);
+
     return {
       category_names: {
         terms: { field: 'category_names', size: 50 },
@@ -825,6 +953,19 @@ export default class OpenSearchModuleService {
       meta_filling: {
         terms: { field: 'meta_filling', size: 20 },
       },
+      // Use region-specific price field for price range aggregation
+      price_ranges: {
+        range: {
+          field: priceField,
+          ranges: [
+            { key: 'Under $500', to: 50000 },
+            { key: '$500 - $1,000', from: 50000, to: 100000 },
+            { key: '$1,000 - $2,000', from: 100000, to: 200000 },
+            { key: 'Over $2,000', from: 200000 },
+          ],
+        },
+      },
+      // Keep min_price for backward compatibility
       min_price: {
         range: {
           field: 'min_price',
@@ -849,9 +990,12 @@ export default class OpenSearchModuleService {
       const aggData = agg as { buckets?: Array<{ key: string; doc_count: number }> };
 
       if (aggData.buckets && aggData.buckets.length > 0) {
+        // Determine if this is a range facet (price-related)
+        const isRangeFacet = field === 'min_price' || field === 'price_ranges';
+
         facets[field] = {
           field,
-          type: field === 'min_price' ? 'range' : 'value',
+          type: isRangeFacet ? 'range' : 'value',
           data: aggData.buckets.map((bucket) => ({
             value: String(bucket.key),
             count: bucket.doc_count,

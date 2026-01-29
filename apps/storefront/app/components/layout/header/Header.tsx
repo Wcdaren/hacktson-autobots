@@ -135,16 +135,6 @@ export const Header: FC<HeaderProps> = () => {
                       )}
                     </div>
                   ))}
-
-                  {/* 如果分类太多，显示更多链接 */}
-                  {categoryTree.length > 6 && (
-                    <Link
-                      to="/products"
-                      className="px-4 py-2 text-sm tracking-wide text-gray-600 hover:text-gray-900 transition-colors"
-                    >
-                      More
-                    </Link>
-                  )}
                 </div>
               </div>
 

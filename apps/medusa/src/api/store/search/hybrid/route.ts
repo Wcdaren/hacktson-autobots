@@ -18,13 +18,15 @@ interface HybridSearchBody {
   filters?: Record<string, unknown>;
   keywordWeight?: number;
   semanticWeight?: number;
+  /** Region ID for region-aware pricing (e.g., "reg_us", "reg_eu") */
+  regionId?: string;
 }
 
 export async function POST(req: MedusaRequest<HybridSearchBody>, res: MedusaResponse) {
   const startTime = Date.now();
 
   try {
-    const { query, size = 20, filters, keywordWeight = 0.5, semanticWeight = 0.5 } = req.body;
+    const { query, size = 20, filters, keywordWeight = 0.5, semanticWeight = 0.5, regionId } = req.body;
 
     if (!query || typeof query !== 'string') {
       return res.status(400).json({
@@ -60,6 +62,7 @@ export async function POST(req: MedusaRequest<HybridSearchBody>, res: MedusaResp
         filters,
         keywordWeight,
         semanticWeight,
+        regionId,
       },
     );
 
@@ -74,6 +77,7 @@ export async function POST(req: MedusaRequest<HybridSearchBody>, res: MedusaResp
         total,
         responseTimeMs: responseTime,
         weights: { keyword: keywordWeight, semantic: semanticWeight },
+        regionId,
       },
     });
   } catch (error) {

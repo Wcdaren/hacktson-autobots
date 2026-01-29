@@ -16,13 +16,15 @@ interface SemanticSearchBody {
   size?: number;
   filters?: Record<string, unknown>;
   minScore?: number;
+  /** Region ID for region-aware pricing (e.g., "reg_us", "reg_eu") */
+  regionId?: string;
 }
 
 export async function POST(req: MedusaRequest<SemanticSearchBody>, res: MedusaResponse) {
   const startTime = Date.now();
 
   try {
-    const { query, size = 20, filters, minScore = 0 } = req.body;
+    const { query, size = 20, filters, minScore = 0, regionId } = req.body;
 
     if (!query || typeof query !== 'string') {
       return res.status(400).json({
@@ -47,6 +49,7 @@ export async function POST(req: MedusaRequest<SemanticSearchBody>, res: MedusaRe
       size,
       filters,
       minScore,
+      regionId,
     });
 
     const responseTime = Date.now() - startTime;
@@ -58,6 +61,7 @@ export async function POST(req: MedusaRequest<SemanticSearchBody>, res: MedusaRe
         query,
         total: results.length,
         responseTimeMs: responseTime,
+        regionId,
       },
     });
   } catch (error) {
