@@ -5,6 +5,9 @@
  * Fetches products using Query, transforms them to the OpenSearch document format,
  * indexes published products, and removes unpublished products from the index.
  *
+ * Supports optional AI-powered description generation using Claude AI via AWS Bedrock.
+ * When enabled, generates bilingual descriptions and AI embeddings for enhanced search.
+ *
  * @example
  * ```typescript
  * // Full sync of all products
@@ -16,14 +19,27 @@
  * await syncProductsWorkflow(container).run({
  *   input: { filters: { id: "prod_123" } }
  * })
+ *
+ * // Sync with AI description generation enabled
+ * await syncProductsWorkflow(container).run({
+ *   input: {
+ *     limit: 100,
+ *     generateAIDescriptions: true,
+ *     aiConcurrency: 3
+ *   }
+ * })
  * ```
+ *
+ * _Requirements: 1.1, 1.4_
  */
 
-import { createWorkflow, transform, WorkflowResponse } from '@medusajs/framework/workflows-sdk';
+import { createWorkflow, transform, when, WorkflowResponse } from '@medusajs/framework/workflows-sdk';
 import { useQueryGraphStep } from '@medusajs/medusa/core-flows';
 import { syncProductsStep } from './steps/sync-products';
 import { deleteProductsFromOpenSearchStep } from './steps/delete-products-from-opensearch';
 import { generateEmbeddingsStep } from './steps/generate-embeddings';
+import { generateAIDescriptionsStep, type AIDescriptionResult } from './steps/generate-ai-descriptions';
+import { generateAIEmbeddingsStep, type AIEmbeddingResult } from './steps/generate-ai-embeddings';
 
 /**
  * Input type for the sync products workflow
@@ -37,6 +53,26 @@ type SyncProductsWorkflowInput = {
   offset?: number;
   /** Whether to generate embeddings for semantic search */
   generateEmbeddings?: boolean;
+  /**
+   * Whether to generate AI-powered descriptions using Claude AI.
+   * When enabled, analyzes product thumbnails to generate bilingual descriptions
+   * and AI embeddings for enhanced semantic search.
+   * Default: false (for backward compatibility)
+   * _Requirements: 1.1, 1.4_
+   */
+  generateAIDescriptions?: boolean;
+  /**
+   * Concurrency limit for AI description generation.
+   * Controls how many products are processed in parallel.
+   * Default: 3
+   */
+  aiDescriptionConcurrency?: number;
+  /**
+   * Concurrency limit for AI embedding generation.
+   * Controls how many embeddings are generated in parallel.
+   * Default: 5
+   */
+  aiEmbeddingConcurrency?: number;
 };
 
 /**
@@ -57,6 +93,18 @@ type OpenSearchProductDocument = Record<string, unknown> & {
   price: number;
   created_at: Date;
   updated_at: Date;
+  // AI-generated fields (optional, populated when generateAIDescriptions is true)
+  ai_description_en?: string;
+  ai_description_zh?: string;
+  ai_colors?: string[];
+  ai_materials?: string[];
+  ai_design_elements?: string[];
+  ai_style?: string;
+  ai_analysis_timestamp?: string;
+  // AI embedding fields (optional, populated when generateAIDescriptions is true)
+  ai_text_embedding_en?: number[];
+  ai_text_embedding_zh?: number[];
+  ai_combined_embedding?: number[];
 };
 
 /**
@@ -172,10 +220,113 @@ export const syncProductsWorkflow = createWorkflow('sync-products', (input: Sync
     generateImageEmbeddings: true,
   });
 
-  // Step 4: Index published products (with embeddings) to OpenSearch
-  syncProductsStep({ products: productsWithEmbeddings });
+  // Step 4: Conditionally generate AI descriptions and embeddings when feature flag is enabled
+  // Uses `when()` for workflow conditional execution
+  // Both AI steps are grouped together since they depend on each other
+  // _Requirements: 1.1, 1.4_
+  const aiProcessingOutput = when(
+    'generate-ai-content-conditional',
+    input,
+    (inputData) => inputData.generateAIDescriptions === true,
+  ).then(() => {
+    // Generate AI descriptions from product thumbnails using Claude AI
+    const aiDescriptions = generateAIDescriptionsStep({
+      products: publishedProducts,
+      concurrency: input.aiDescriptionConcurrency,
+    });
 
-  // Step 5: Remove unpublished products from OpenSearch
+    // Generate embeddings from AI descriptions (English, Chinese, and combined)
+    const aiEmbeddings = generateAIEmbeddingsStep({
+      aiDescriptions: aiDescriptions.results,
+      concurrency: input.aiEmbeddingConcurrency,
+    });
+
+    // Return both results using transform to combine them
+    const combinedResult = transform({ aiDescriptions, aiEmbeddings }, (data) => ({
+      descriptions: data.aiDescriptions,
+      embeddings: data.aiEmbeddings,
+    }));
+
+    return combinedResult;
+  });
+
+  // Step 5: Merge AI fields into products before indexing
+  // Combines base product data with AI descriptions and embeddings
+  const productsToIndex = transform(
+    {
+      products: productsWithEmbeddings,
+      aiProcessing: aiProcessingOutput,
+      generateAIDescriptions: input.generateAIDescriptions,
+    },
+    (data): OpenSearchProductDocument[] => {
+      // If AI descriptions were not generated, return products as-is
+      if (!data.generateAIDescriptions || !data.aiProcessing) {
+        return data.products as OpenSearchProductDocument[];
+      }
+
+      // Extract AI results from the combined output
+      const aiProcessing = data.aiProcessing as {
+        descriptions: { results: AIDescriptionResult[]; failed: string[] };
+        embeddings: { results: AIEmbeddingResult[]; failed: string[] };
+      };
+
+      // Create lookup maps for AI data by product ID
+      const aiDescriptionMap = new Map<string, AIDescriptionResult>();
+      const aiEmbeddingMap = new Map<string, AIEmbeddingResult>();
+
+      // Build description lookup map
+      if (aiProcessing.descriptions?.results) {
+        for (const desc of aiProcessing.descriptions.results) {
+          aiDescriptionMap.set(desc.product_id, desc);
+        }
+      }
+
+      // Build embedding lookup map
+      if (aiProcessing.embeddings?.results) {
+        for (const emb of aiProcessing.embeddings.results) {
+          aiEmbeddingMap.set(emb.product_id, emb);
+        }
+      }
+
+      // Merge AI fields into each product
+      return (data.products as OpenSearchProductDocument[]).map((product) => {
+        const aiDesc = aiDescriptionMap.get(product.id);
+        const aiEmb = aiEmbeddingMap.get(product.id);
+
+        // If no AI data for this product, return as-is
+        if (!aiDesc && !aiEmb) {
+          return product;
+        }
+
+        // Merge AI description fields
+        const mergedProduct: OpenSearchProductDocument = { ...product };
+
+        if (aiDesc) {
+          mergedProduct.ai_description_en = aiDesc.ai_description_en;
+          mergedProduct.ai_description_zh = aiDesc.ai_description_zh;
+          mergedProduct.ai_colors = aiDesc.ai_colors;
+          mergedProduct.ai_materials = aiDesc.ai_materials;
+          mergedProduct.ai_design_elements = aiDesc.ai_design_elements;
+          mergedProduct.ai_style = aiDesc.ai_style;
+          mergedProduct.ai_analysis_timestamp = aiDesc.ai_analysis_timestamp;
+        }
+
+        // Merge AI embedding fields
+        if (aiEmb) {
+          mergedProduct.ai_text_embedding_en = aiEmb.ai_text_embedding_en;
+          mergedProduct.ai_text_embedding_zh = aiEmb.ai_text_embedding_zh;
+          mergedProduct.ai_combined_embedding = aiEmb.ai_combined_embedding;
+        }
+
+        return mergedProduct;
+      });
+    },
+  );
+
+  // Step 6: Index products (with embeddings and optional AI fields) to OpenSearch
+  syncProductsStep({ products: productsToIndex });
+
+  // Step 7: Remove unpublished products from OpenSearch
   deleteProductsFromOpenSearchStep({ ids: unpublishedProductIds });
 
   // Return workflow response

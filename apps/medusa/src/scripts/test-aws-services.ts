@@ -88,7 +88,7 @@ async function testRekognition(): Promise<boolean> {
 
     const command = new DetectLabelsCommand({
       Image: {
-        Bytes: Buffer.from(testImageBase64, 'base64'),
+        Bytes: new Uint8Array(Buffer.from(testImageBase64, 'base64')),
       },
       MaxLabels: 5,
       MinConfidence: 50,

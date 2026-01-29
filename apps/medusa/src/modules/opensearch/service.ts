@@ -328,6 +328,64 @@ export default class OpenSearchModuleService {
                 },
               },
               embedding_updated_at: { type: 'date' },
+
+              // AI-enhanced k-NN vector fields for multimodal intelligent search
+              // These embeddings are generated from Claude AI descriptions
+              ai_text_embedding_en: {
+                type: 'knn_vector',
+                dimension: 1024,
+                method: {
+                  name: 'hnsw',
+                  ...vectorConfig,
+                  parameters: {
+                    ef_construction: 128,
+                    m: 24,
+                  },
+                },
+              },
+              ai_text_embedding_zh: {
+                type: 'knn_vector',
+                dimension: 1024,
+                method: {
+                  name: 'hnsw',
+                  ...vectorConfig,
+                  parameters: {
+                    ef_construction: 128,
+                    m: 24,
+                  },
+                },
+              },
+              ai_combined_embedding: {
+                type: 'knn_vector',
+                dimension: 1024,
+                method: {
+                  name: 'hnsw',
+                  ...vectorConfig,
+                  parameters: {
+                    ef_construction: 128,
+                    m: 24,
+                  },
+                },
+              },
+
+              // AI-generated fields for multimodal intelligent search
+              // Text fields for full-text search on AI descriptions
+              ai_description_en: {
+                type: 'text',
+                analyzer: 'standard',
+              },
+              ai_description_zh: {
+                type: 'text',
+                analyzer: 'standard', // Use 'ik_max_word' if IK analyzer is available
+              },
+              // Keyword arrays for filtering and faceting
+              ai_colors: { type: 'keyword' },
+              ai_materials: { type: 'keyword' },
+              ai_design_elements: { type: 'keyword' },
+              // Single keyword field for style classification
+              ai_style: { type: 'keyword' },
+              // Timestamp for when AI analysis was performed
+              ai_analysis_timestamp: { type: 'date' },
             },
           },
         },

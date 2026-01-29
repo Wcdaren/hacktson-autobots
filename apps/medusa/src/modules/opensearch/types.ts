@@ -117,6 +117,30 @@ export type ProductDocument = {
   /** ISO date string when embeddings were last updated */
   embedding_updated_at?: string;
 
+  // AI-generated fields for multimodal intelligent search
+  /** AI-generated English description from Claude image analysis */
+  ai_description_en?: string;
+  /** AI-generated Chinese description from Claude image analysis */
+  ai_description_zh?: string;
+  /** AI-extracted color attributes from product image */
+  ai_colors?: string[];
+  /** AI-extracted material attributes from product image */
+  ai_materials?: string[];
+  /** AI-extracted design element keywords from product image */
+  ai_design_elements?: string[];
+  /** AI-classified style (e.g., modern, traditional, minimalist) */
+  ai_style?: string;
+  /** ISO date string when AI analysis was performed */
+  ai_analysis_timestamp?: string;
+
+  // AI-enhanced embedding fields for multimodal intelligent search
+  /** AI-enhanced English text embedding vector (1024 dimensions) from Claude description */
+  ai_text_embedding_en?: number[];
+  /** AI-enhanced Chinese text embedding vector (1024 dimensions) from Claude description */
+  ai_text_embedding_zh?: number[];
+  /** AI-enhanced combined embedding vector (1024 dimensions) from full AI analysis */
+  ai_combined_embedding?: number[];
+
   // Per-region pricing fields (dynamically named)
   // These fields store min_price per region for region-aware pricing
   // Format: price_reg_{regionId} and currency_reg_{regionId}

@@ -46,11 +46,8 @@ export default async function handleProductEvents({
     });
     logger.info(`Successfully synced product ${data.id} to OpenSearch`);
   } catch (error) {
-    logger.error(`Failed to sync product ${data.id} to OpenSearch:`, {
-      error: error.message,
-      stack: error.stack,
-      productId: data.id,
-    });
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logger.error(`Failed to sync product ${data.id} to OpenSearch`, errorObj);
     // Don't throw - let the subscriber complete gracefully
   }
 }

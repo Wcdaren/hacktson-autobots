@@ -27,8 +27,10 @@ jest.mock('@aws-sdk/client-rekognition', () => ({
 
 describe('EmbeddingService', () => {
   let service: EmbeddingService;
-  let mockBedrockSend: jest.Mock;
-  let mockRekognitionSend: jest.Mock;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let mockBedrockSend: jest.Mock<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let mockRekognitionSend: jest.Mock<any>;
 
   const defaultOptions: EmbeddingServiceOptions = {
     awsRegion: 'us-east-1',
@@ -59,10 +61,12 @@ describe('EmbeddingService', () => {
     service = new EmbeddingService({}, defaultOptions);
 
     // Get mock send functions
-    mockBedrockSend = service.getBedrockClient().send as jest.Mock;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockBedrockSend = service.getBedrockClient().send as jest.Mock<any>;
     const rekognitionClient = service.getRekognitionClient();
     if (rekognitionClient) {
-      mockRekognitionSend = rekognitionClient.send as jest.Mock;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockRekognitionSend = rekognitionClient.send as jest.Mock<any>;
     }
   });
 

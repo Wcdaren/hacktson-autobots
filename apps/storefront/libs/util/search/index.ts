@@ -27,3 +27,8 @@ export {
   createCollectionSearchConnector,
   type CollectionSearchConnectorConfig,
 } from './collectionSearchConnector';
+
+export {
+  createMultimodalSearchConnector,
+  type MultimodalSearchConnectorConfig,
+} from './multimodalSearchConnector';

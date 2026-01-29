@@ -99,6 +99,32 @@ module.exports = defineConfig({
         rekognitionEnabled: process.env.REKOGNITION_ENABLED === 'true',
       },
     },
+    // Image analyzer module for AI-powered product image analysis using Claude
+    {
+      resolve: './src/modules/image-analyzer',
+      options: {
+        awsRegion: process.env.AWS_REGION || 'us-east-1',
+        bedrockModelId: process.env.BEDROCK_CLAUDE_MODEL_ID || 'anthropic.claude-3-sonnet-20240229-v1:0',
+      },
+    },
+    // Intent extractor module for AI-powered query understanding
+    {
+      resolve: './src/modules/intent-extractor',
+      options: {
+        awsRegion: process.env.AWS_REGION || 'us-east-1',
+        bedrockModelId: process.env.BEDROCK_CLAUDE_MODEL_ID || 'anthropic.claude-3-sonnet-20240229-v1:0',
+      },
+    },
+    // Multimodal search module for intelligent search combining text and images
+    {
+      resolve: './src/modules/multimodal-search',
+      options: {
+        defaultSize: 20,
+        defaultKeywordWeight: 0.5,
+        defaultSemanticWeight: 0.5,
+        enableAIEmbeddings: true,
+      },
+    },
   ],
   admin: {
     backendUrl: process.env.ADMIN_BACKEND_URL,

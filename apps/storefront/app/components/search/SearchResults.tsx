@@ -52,9 +52,8 @@ interface SearchResultsWithSearchProps extends SearchResultsProps {
 }
 
 /**
- * Enhanced search result
- * Note: matchType and similarityScore are kept internally for potential analytics
- * but are NOT displayed to users (search is transparent per design requirements)
+ * Enhanced search result with match metadata
+ * Includes matchType and similarityScore for display
  */
 export interface EnhancedSearchResult {
   product: StoreProduct;
@@ -62,14 +61,16 @@ export interface EnhancedSearchResult {
   minPrice?: number;
   /** Currency code for price formatting */
   currencyCode?: string;
+  /** Type of match: text, visual, mixed, or semantic */
+  matchType?: 'text' | 'visual' | 'mixed' | 'semantic';
+  /** Similarity score (0-1) for visual/semantic matches */
+  similarityScore?: number;
 }
 
 /**
  * Transform a search result into a StoreProduct-compatible object
  * Maps OpenSearch indexed fields to the ProductListItem expected format
- *
- * Note: match_type and similarity_score from _meta are intentionally NOT exposed
- * to the UI - search is transparent to users per design requirements
+ * Extracts match_type and similarity_score from _meta for display
  */
 function transformResultToProduct(result: SearchResult): EnhancedSearchResult {
   // Safely extract raw values, handling undefined and complex objects
@@ -94,6 +95,10 @@ function transformResultToProduct(result: SearchResult): EnhancedSearchResult {
   const handle = String(getRawValue(result.handle) || '');
   const thumbnail = getRawValue(result.thumbnail) || null;
 
+  // Extract match metadata from _meta if available
+  const matchType = result._meta?.matchType as 'text' | 'visual' | 'mixed' | 'semantic' | undefined;
+  const similarityScore = result._meta?.similarityScore as number | undefined;
+
   const product = {
     id,
     title,
@@ -115,19 +120,18 @@ function transformResultToProduct(result: SearchResult): EnhancedSearchResult {
     product,
     minPrice: priceValue,
     currencyCode: String(currencyCode),
+    matchType,
+    similarityScore,
   };
 }
 
 /**
  * Custom result view that wraps ProductListItem with a link
- *
- * Note: Match type badges have been intentionally removed per design requirements.
- * Search is transparent to users - they don't see "exact match" vs "semantic match" labels.
- * Price is displayed as "From $XXX" format using the minimum variant price.
+ * Displays match type indicators and similarity scores for enhanced results
  */
 const ResultView: FC<{ result: SearchResult }> = ({ result }) => {
   try {
-    const { product, minPrice, currencyCode } = transformResultToProduct(result);
+    const { product, minPrice, currencyCode, matchType, similarityScore } = transformResultToProduct(result);
     const handle = product.handle;
 
     // Validate that we have required data
@@ -142,7 +146,13 @@ const ResultView: FC<{ result: SearchResult }> = ({ result }) => {
         className="block transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
         aria-label={`View ${product.title}`}
       >
-        <SearchResultItem product={product} minPrice={minPrice} currencyCode={currencyCode} />
+        <SearchResultItem
+          product={product}
+          minPrice={minPrice}
+          currencyCode={currencyCode}
+          matchType={matchType}
+          similarityScore={similarityScore}
+        />
       </Link>
     );
   } catch (error) {
@@ -153,24 +163,71 @@ const ResultView: FC<{ result: SearchResult }> = ({ result }) => {
 
 /**
  * Search result item component that displays product with "From $XXX" pricing
- * This is a specialized version of ProductListItem for search results
+ * Includes match type indicator and similarity score for multimodal search results
  */
 interface SearchResultItemProps {
   product: StoreProduct;
   minPrice?: number;
   currencyCode?: string;
+  matchType?: 'text' | 'visual' | 'mixed' | 'semantic';
+  similarityScore?: number;
 }
 
-const SearchResultItem: FC<SearchResultItemProps> = ({ product, minPrice, currencyCode = 'usd' }) => {
+const SearchResultItem: FC<SearchResultItemProps> = ({
+  product,
+  minPrice,
+  currencyCode = 'usd',
+  matchType,
+  similarityScore,
+}) => {
   // Format the price with "From" prefix for search results
   const formattedPrice =
     minPrice !== undefined && minPrice > 0 ? `From ${formatPrice(minPrice, { currency: currencyCode })}` : null;
+
+  // Get match type label and color
+  const getMatchTypeInfo = (type?: string) => {
+    switch (type) {
+      case 'text':
+        return { label: 'Text match', color: 'bg-blue-100 text-blue-800' };
+      case 'visual':
+        return { label: 'Visual match', color: 'bg-purple-100 text-purple-800' };
+      case 'mixed':
+        return { label: 'Mixed match', color: 'bg-green-100 text-green-800' };
+      case 'semantic':
+        return { label: 'Semantic match', color: 'bg-amber-100 text-amber-800' };
+      default:
+        return null;
+    }
+  };
+
+  const matchInfo = getMatchTypeInfo(matchType);
 
   return (
     <article className="group/product-card text-left">
       <div className="relative">
         <ProductBadges className="absolute right-2 top-2 z-10 flex gap-2" product={product} />
+
+        {/* Match type indicator badge */}
+        {matchInfo && (
+          <div className="absolute left-2 top-2 z-10">
+            <span
+              className={clsx('inline-flex items-center px-2 py-1 rounded-md text-xs font-medium', matchInfo.color)}
+            >
+              {matchInfo.label}
+            </span>
+          </div>
+        )}
+
         <ProductThumbnail product={product} />
+
+        {/* Similarity score indicator */}
+        {similarityScore !== undefined && similarityScore > 0 && (
+          <div className="absolute bottom-2 right-2 z-10">
+            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-white/90 text-gray-900 shadow-sm">
+              🎯 {Math.round(similarityScore * 100)}%
+            </span>
+          </div>
+        )}
       </div>
 
       <h4 className="mt-4 overflow-hidden text-ellipsis text-sm font-bold">{product.title}</h4>
