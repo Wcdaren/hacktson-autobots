@@ -235,9 +235,8 @@ Map abstract terms to these concrete attributes when possible."""
         if tag_index_service and tag_index_service.has_tags_for_query(query):
             logger.info(f"Using pre-computed tags for: {query}")
             tags = tag_index_service.get_tags_for_query(query, self.max_tags)
-            # Convert SearchTag objects to dicts
-            return [{'tag': t.tag, 'type': t.tag_type.value, 'relevance_score': t.relevance_score} 
-                    for t in tags]
+            # Tags are already dicts, return as-is
+            return tags
         
         # Tier 2: Check cache for LLM-generated tags
         if self.tags_config.get('cache_enabled', True):
@@ -254,16 +253,8 @@ Map abstract terms to these concrete attributes when possible."""
         if self.tags_config.get('cache_enabled', True):
             self.tag_cache.set(query, tags, self.tag_cache_ttl)
         
-        # Add to pre-computed index for future use
-        if tag_index_service:
-            # Convert dicts to SearchTag objects for index
-            from .tag_index_service import SearchTag, TagType
-            tag_objects = [SearchTag(
-                tag=t['tag'],
-                tag_type=TagType(t['type']),
-                relevance_score=t.get('relevance_score', 0.5)
-            ) for t in tags]
-            tag_index_service.add_query_pattern(query, tag_objects)
+        # Note: We don't add to pre-computed index dynamically to avoid index bloat
+        # The index should be rebuilt periodically with analytics data
         
         return tags
     

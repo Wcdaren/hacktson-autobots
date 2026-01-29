@@ -34,6 +34,11 @@ class SearchQueryService:
         
         # Initialize OpenSearch client (use main region for ap-southeast-1)
         opensearch_config = config['aws']['opensearch']
+        
+        # SSL configuration (allow disabling for SSH tunnels)
+        verify_certs = opensearch_config.get('verify_certs', True)
+        ssl_show_warn = opensearch_config.get('ssl_show_warn', True)
+        
         if opensearch_config.get('use_iam_auth', True):
             credentials = boto3.Session().get_credentials()
             auth = AWSV4SignerAuth(credentials, config['aws']['region'])
@@ -43,7 +48,8 @@ class SearchQueryService:
                        'port': 443}],
                 http_auth=auth,
                 use_ssl=True,
-                verify_certs=True,
+                verify_certs=verify_certs,
+                ssl_show_warn=ssl_show_warn,
                 connection_class=RequestsHttpConnection
             )
         else:
@@ -59,7 +65,8 @@ class SearchQueryService:
                 hosts=[opensearch_config['endpoint']],
                 http_auth=(username, password),
                 use_ssl=True,
-                verify_certs=True
+                verify_certs=verify_certs,
+                ssl_show_warn=ssl_show_warn
             )
         
         self.text_index = opensearch_config['indices']['text_index']
@@ -462,7 +469,7 @@ class SearchQueryService:
         return results, top_score
     
     def _format_results(self, results: List[Dict]) -> List[Dict]:
-        """Format search results for API response."""
+        """Format search results for API response with complete metadata."""
         formatted_results = []
         for rank, result in enumerate(results, 1):
             # Get default image
@@ -476,7 +483,8 @@ class SearchQueryService:
                     default_image = result['images'][0].get('url', '')
             
             formatted_results.append({
-                "variant_id": result['variant_id'],
+                "variant_id": result.get('variant_id', ''),
+                "product_id": result.get('product_id', ''),
                 "product_name": result.get('product_name', ''),
                 "variant_name": result.get('variant_name', ''),
                 "description": result.get('description', ''),
@@ -488,7 +496,17 @@ class SearchQueryService:
                 "review_rating": result.get('review_rating', 0),
                 "review_count": result.get('review_count', 0),
                 "stock_status": result.get('stock_status', ''),
+                "lifecycle_status": result.get('lifecycle_status', ''),
                 "frontend_category": result.get('frontend_category', ''),
+                "frontend_subcategory": result.get('frontend_subcategory', ''),
+                "backend_category": result.get('backend_category', ''),
+                "product_type": result.get('product_type', ''),
+                "material": result.get('material', ''),
+                "color_tone": result.get('color_tone', ''),
+                "collection": result.get('collection', ''),
+                "other_properties": result.get('other_properties', ''),
+                "variant_url": result.get('variant_url', ''),
+                "aggregated_text": result.get('aggregated_text', ''),
                 "images": result.get('images', []),
                 "properties": result.get('properties', {}),
                 "options": result.get('options', [])
@@ -558,17 +576,34 @@ class SearchQueryService:
                     "message": "no results found for query"
                 }
             
-            # Format results
+            # Format results with full product metadata
             formatted_results = []
             for rank, result in enumerate(results, 1):
                 formatted_results.append({
                     "variant_id": result['variant_id'],
+                    "product_id": result.get('product_id', ''),
                     "product_name": result.get('product_name', ''),
+                    "variant_name": result.get('variant_name', ''),
+                    "description": result.get('description', ''),
                     "price": result.get('price', 0),
+                    "currency": result.get('currency', 'SGD'),
                     "image_url": result.get('image_url', ''),
                     "image_type": result.get('image_type', ''),
+                    "image_position": result.get('image_position', 1),
+                    "is_default": result.get('is_default', False),
                     "score": round(result.get('score', 0), 4),
-                    "rank": rank
+                    "rank": rank,
+                    "frontend_category": result.get('frontend_category', ''),
+                    "frontend_subcategory": result.get('frontend_subcategory', ''),
+                    "backend_category": result.get('backend_category', ''),
+                    "product_type": result.get('product_type', ''),
+                    "review_rating": result.get('review_rating', 0),
+                    "review_count": result.get('review_count', 0),
+                    "stock_status": result.get('stock_status', ''),
+                    "material": result.get('material', ''),
+                    "color_tone": result.get('color_tone', ''),
+                    "collection": result.get('collection', ''),
+                    "variant_url": result.get('variant_url', '')
                 })
             
             response_time = int((time.time() - start_time) * 1000)

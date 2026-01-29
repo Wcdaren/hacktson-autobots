@@ -201,6 +201,26 @@ class TagIndexService:
             for tag in tags:
                 self.term_to_tags[pattern].add(tag['tag'])
     
+    def has_tags_for_query(self, query: str) -> bool:
+        """
+        Check if pre-computed tags exist for this query.
+        
+        Args:
+            query: User search query
+            
+        Returns:
+            True if tags exist in index, False otherwise
+        """
+        query_lower = query.lower()
+        query_terms = query_lower.split()
+        
+        # Check if any term matches our index
+        for term in query_terms:
+            if term in self.category_tags or term in self.query_pattern_tags:
+                return True
+        
+        return False
+    
     def get_tags_for_query(self, query: str, max_tags: int = 10) -> List[Dict]:
         """
         Get pre-computed tags for a query (instant lookup).

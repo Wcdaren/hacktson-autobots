@@ -395,7 +395,7 @@ aws:
   bedrock_region: us-east-1
   
   s3:
-    bucket: your-bucket-name  # Replace with your S3 bucket (or set S3_BUCKET_NAME env var)
+    bucket: cslr-hackathon-sg-test
     data_prefix: data/active_only/
     files:
       - variant.csv
@@ -404,6 +404,13 @@ aws:
       - variant_option.csv
       - variant_affinity.csv
       - variant_file.csv
+    
+    # Embedding file locations in S3
+    embeddings:
+      text_embeddings_prefix: Autobots/embeddings/text_embeddings/
+      text_embeddings_file: products_with_embeddings.json
+      image_embeddings_prefix: Autobots/embeddings/image_embeddings/
+      image_embeddings_pattern: image_embeddings_batch_*.json
   
   bedrock:
     text_model_id: amazon.titan-embed-text-v2:0
@@ -414,13 +421,13 @@ aws:
     timeout_seconds: 30
   
   opensearch:
-    endpoint: https://your-domain.us-east-1.es.amazonaws.com  # Replace with your OpenSearch endpoint
+    endpoint: https://vpc-hackathon-autobots-apse1-fbn25iam65pez2wksf4jhojbne.ap-southeast-1.es.amazonaws.com
     # Credentials moved to .env file for security
     # username and password are loaded from environment variables
     use_iam_auth: false  # Set to false if using username/password auth
     indices:
-      text_index: product-text-embeddings
-      image_index: product-image-embeddings
+      text_index: search_engine_v1_text
+      image_index: search_engine_v1_image
     
 search_query:
   max_results: 50
@@ -489,7 +496,7 @@ indexing:
   # KNN settings
   knn:
     method: hnsw
-    engine: nmslib
+    engine: lucene  # Changed from nmslib (deprecated in OpenSearch 3.0+)
     space_type: l2
     ef_construction: 512
     m: 16
@@ -519,7 +526,7 @@ monitoring:
 # Feature 5: LLM Fallback for Intent Extraction
 llm_fallback:
   enabled: true
-  model_id: anthropic.claude-sonnet-4-5-20250929-v1:0
+  model_id: anthropic.claude-3-sonnet-20240229-v1:0
   similarity_threshold: 0.3  # Trigger fallback when top score is below this
   cache_enabled: true
   cache_ttl_seconds: 3600  # 1 hour cache for LLM responses
@@ -531,7 +538,7 @@ related_tags:
   enabled: true
   min_tags: 3
   max_tags: 10
-  llm_model_id: anthropic.claude-sonnet-4-5-20250929-v1:0
+  llm_model_id: anthropic.claude-3-sonnet-20240229-v1:0
   cache_enabled: true
   cache_ttl_seconds: 1800  # 30 minutes cache for tags
   

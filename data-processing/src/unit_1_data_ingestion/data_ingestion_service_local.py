@@ -111,52 +111,58 @@ class DataIngestionServiceLocal:
         for _, variant in variant_df.iterrows():
             variant_id = str(variant.get('variant_id', ''))
             
+            # Helper function to safely get values, replacing NaN with default
+            def safe_get(key, default=''):
+                value = variant.get(key, default)
+                return value if pd.notna(value) else default
+            
             # Create aggregated searchable text from all available fields
             aggregated_text_parts = [
-                variant.get('variant_name', ''),
-                variant.get('product_name', ''),
-                variant.get('description', ''),
-                variant.get('frontend_category', ''),
-                variant.get('frontend_subcategory', ''),
-                variant.get('collection', ''),
-                variant.get('color_tone', ''),
-                variant.get('material', ''),
-                variant.get('other_properties', ''),
+                safe_get('variant_name'),
+                safe_get('product_name'),
+                safe_get('description'),
+                safe_get('frontend_category'),
+                safe_get('frontend_subcategory'),
+                safe_get('collection'),
+                safe_get('color_tone'),
+                safe_get('material'),
+                safe_get('other_properties'),
             ]
-            aggregated_text = ' '.join([str(p) for p in aggregated_text_parts if pd.notna(p) and str(p).strip()])
+            aggregated_text = ' '.join([str(p) for p in aggregated_text_parts if p and str(p).strip()])
             
             # Build minimal product dict - ONLY fields from CSV
+            # All NaN values are replaced with appropriate defaults
             enriched_product = {
                 # Core IDs
                 'variant_id': variant_id,
-                'product_id': str(variant.get('product_id', '')),
+                'product_id': str(safe_get('product_id')),
                 
                 # Names and description
-                'variant_name': variant.get('variant_name', ''),
-                'product_name': variant.get('product_name', ''),
-                'description': variant.get('description', ''),
+                'variant_name': safe_get('variant_name'),
+                'product_name': safe_get('product_name'),
+                'description': safe_get('description'),
                 'aggregated_text': aggregated_text,
                 
                 # Pricing
-                'price': float(variant.get('sale_price', 0) or 0),
-                'currency': variant.get('currency', 'SGD'),
+                'price': float(safe_get('sale_price', 0) or 0),
+                'currency': safe_get('currency', 'SGD'),
                 
                 # Categories
-                'product_type': variant.get('product_type', ''),
-                'frontend_category': variant.get('frontend_category', ''),
-                'frontend_subcategory': variant.get('frontend_subcategory', ''),
-                'backend_category': variant.get('frontend_category', ''),
+                'product_type': safe_get('product_type'),
+                'frontend_category': safe_get('frontend_category'),
+                'frontend_subcategory': safe_get('frontend_subcategory'),
+                'backend_category': safe_get('frontend_category'),
                 
                 # Reviews (handle NaN values)
-                'review_count': int(variant.get('review_count', 0) or 0) if pd.notna(variant.get('review_count')) else 0,
-                'review_rating': float(variant.get('review_rating', 0) or 0) if pd.notna(variant.get('review_rating')) else 0.0,
+                'review_count': int(safe_get('review_count', 0) or 0),
+                'review_rating': float(safe_get('review_rating', 0) or 0),
                 
                 # Additional CSV fields
-                'collection': variant.get('collection', ''),
-                'color_tone': variant.get('color_tone', ''),
-                'material': variant.get('material', ''),
-                'other_properties': variant.get('other_properties', ''),
-                'variant_url': variant.get('variant_url', ''),
+                'collection': safe_get('collection'),
+                'color_tone': safe_get('color_tone'),
+                'material': safe_get('material'),
+                'other_properties': safe_get('other_properties'),
+                'variant_url': safe_get('variant_url'),
                 
                 # Minimal metadata
                 'stock_status': 'in_stock',
@@ -284,8 +290,27 @@ class DataIngestionServiceLocal:
         
         logger.info(f"Saving {len(products)} products to {output_path}")
         
+        # Clean NaN values before saving to prevent OpenSearch indexing errors
+        import math
+        cleaned_products = []
+        nan_count = 0
+        
+        for product in products:
+            cleaned_product = {}
+            for key, value in product.items():
+                # Replace NaN with None (which becomes null in JSON)
+                if isinstance(value, float) and math.isnan(value):
+                    cleaned_product[key] = None
+                    nan_count += 1
+                else:
+                    cleaned_product[key] = value
+            cleaned_products.append(cleaned_product)
+        
+        if nan_count > 0:
+            logger.warning(f"Replaced {nan_count} NaN values with null")
+        
         with open(output_path, 'w') as f:
-            json.dump(products, f, indent=2)
+            json.dump(cleaned_products, f, indent=2)
         
         logger.info(f"✓ Saved products with embeddings to {output_path}")
     

@@ -26,7 +26,16 @@ def load_text_embeddings(embeddings_dir: Path) -> List[Dict]:
     logger.info(f"Loading text embeddings from {text_file}")
     
     with open(text_file, 'r') as f:
-        products = json.load(f)
+        content = f.read()
+    
+    # Fix NaN values that cause OpenSearch indexing errors
+    # Replace NaN with null for proper JSON parsing
+    if 'NaN' in content:
+        nan_count = content.count('NaN')
+        logger.warning(f"Found {nan_count} NaN values in embeddings file, replacing with null")
+        content = content.replace('NaN', 'null')
+    
+    products = json.loads(content)
     
     logger.info(f"Loaded {len(products)} products with text embeddings")
     return products
@@ -54,9 +63,10 @@ def load_image_embeddings(embeddings_dir: Path) -> List[Dict]:
     return all_images
 
 
-def transform_image_documents(images: List[Dict]) -> List[Dict]:
+def transform_image_documents(images: List[Dict], products: List[Dict]) -> List[Dict]:
     """
     Transform image embeddings to match OpenSearch index schema.
+    Enriches image documents with full product metadata.
     
     Input format:
     {
@@ -66,39 +76,69 @@ def transform_image_documents(images: List[Dict]) -> List[Dict]:
         "image_embedding": [...]
     }
     
-    Output format:
-    {
-        "variant_id": "36680",
-        "image_url": "36680_1.png",
-        "image_type": "product",
-        "image_position": 1,
-        "is_default": true/false,
-        "image_embedding": [...],
-        "product_name": "",
-        "price": 0.0
-    }
+    Output format: Image data + all product metadata fields
     """
+    # Create lookup map for products by variant_id
+    product_map = {str(p['variant_id']): p for p in products}
+    
     transformed = []
+    missing_products = 0
     
     for img in images:
         # Extract position from image_id (e.g., "36680_1" -> position 1)
         image_id_parts = img['image_id'].split('_')
         position = int(image_id_parts[-1]) if len(image_id_parts) > 1 else 1
         
+        # Get product metadata
+        variant_id = str(img['variant_id'])
+        product = product_map.get(variant_id)
+        
+        if not product:
+            missing_products += 1
+            logger.warning(f"No product found for variant_id: {variant_id}")
+            continue
+        
+        # Create enriched document with image data + all product metadata
         doc = {
-            'variant_id': img['variant_id'],
+            # Image-specific fields
+            'image_id': img['image_id'],
+            'filename': img['filename'],
             'image_url': img['filename'],
             'image_type': 'product',
             'image_position': position,
-            'is_default': (position == 1),  # First image is default
+            'is_default': (position == 1),
             'image_embedding': img['image_embedding'],
-            'product_name': '',  # Will be enriched later if needed
-            'price': 0.0  # Will be enriched later if needed
+            
+            # Copy all product metadata fields
+            'variant_id': product['variant_id'],
+            'product_id': product['product_id'],
+            'variant_name': product['variant_name'],
+            'product_name': product['product_name'],
+            'description': product['description'],
+            'aggregated_text': product['aggregated_text'],
+            'price': product['price'],
+            'currency': product['currency'],
+            'product_type': product['product_type'],
+            'frontend_category': product['frontend_category'],
+            'frontend_subcategory': product['frontend_subcategory'],
+            'backend_category': product['backend_category'],
+            'review_count': product['review_count'],
+            'review_rating': product['review_rating'],
+            'collection': product['collection'],
+            'color_tone': product['color_tone'],
+            'material': product['material'],
+            'other_properties': product['other_properties'],
+            'variant_url': product['variant_url'],
+            'stock_status': product['stock_status'],
+            'lifecycle_status': product['lifecycle_status'],
         }
         
         transformed.append(doc)
     
-    logger.info(f"Transformed {len(transformed)} image documents")
+    if missing_products > 0:
+        logger.warning(f"Skipped {missing_products} images with missing product data")
+    
+    logger.info(f"Transformed {len(transformed)} image documents with full product metadata")
     return transformed
 
 
@@ -154,7 +194,7 @@ def main():
     logger.info("STEP 3: Transforming Image Documents")
     logger.info("=" * 80)
     
-    image_documents = transform_image_documents(images)
+    image_documents = transform_image_documents(images, products)
     
     # Step 4: Index to OpenSearch
     logger.info("\n" + "=" * 80)

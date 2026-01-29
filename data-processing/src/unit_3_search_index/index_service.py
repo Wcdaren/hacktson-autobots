@@ -141,7 +141,8 @@ class SearchIndexService:
             },
             "mappings": {
                 "properties": {
-                    "variant_id": {"type": "keyword"},
+                    # Image-specific fields
+                    "image_id": {"type": "keyword"},
                     "filename": {"type": "keyword"},
                     "image_url": {"type": "keyword"},
                     "image_type": {"type": "keyword"},
@@ -160,8 +161,34 @@ class SearchIndexService:
                             }
                         }
                     },
-                    "product_name": {"type": "text"},
-                    "price": {"type": "float"}
+                    # Product metadata fields (same as text index)
+                    "variant_id": {"type": "keyword"},
+                    "product_id": {"type": "keyword"},
+                    "variant_name": {
+                        "type": "text",
+                        "fields": {"keyword": {"type": "keyword"}}
+                    },
+                    "product_name": {
+                        "type": "text",
+                        "fields": {"keyword": {"type": "keyword"}}
+                    },
+                    "description": {"type": "text"},
+                    "aggregated_text": {"type": "text"},
+                    "price": {"type": "float"},
+                    "currency": {"type": "keyword"},
+                    "product_type": {"type": "keyword"},
+                    "frontend_category": {"type": "keyword"},
+                    "frontend_subcategory": {"type": "keyword"},
+                    "backend_category": {"type": "keyword"},
+                    "review_count": {"type": "integer"},
+                    "review_rating": {"type": "float"},
+                    "collection": {"type": "keyword"},
+                    "color_tone": {"type": "keyword"},
+                    "material": {"type": "keyword"},
+                    "other_properties": {"type": "text"},
+                    "variant_url": {"type": "keyword"},
+                    "stock_status": {"type": "keyword"},
+                    "lifecycle_status": {"type": "keyword"}
                 }
             }
         }
