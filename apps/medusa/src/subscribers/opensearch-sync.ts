@@ -55,7 +55,10 @@ export default async function handleOpenSearchSync({
  *
  * Subscribes to the custom opensearch.sync event for manual
  * synchronization triggers from the admin API or other sources.
+ *
+ * Note: This subscriber is disabled by default. To enable it, set
+ * ENABLE_OPENSEARCH_SYNC=true in your .env file.
  */
 export const config: SubscriberConfig = {
-  event: 'opensearch.sync',
+  event: process.env.ENABLE_OPENSEARCH_SYNC === 'true' ? 'opensearch.sync' : '',
 };

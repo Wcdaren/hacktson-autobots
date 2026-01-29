@@ -164,6 +164,25 @@ export default class OpenSearchModuleService {
     const exists = await this.client.indices.exists({ index: indexName });
 
     if (!exists.body) {
+      // Determine vector configuration based on OpenSearch version/environment
+      // AWS OpenSearch supports cosinesimilarity with faiss
+      // Local OpenSearch 2.11.0 requires l2 with nmslib
+      const isAwsOpenSearch =
+        this.options.useAwsAuth ||
+        (!this.options.host.includes('localhost') && !this.options.host.includes('127.0.0.1'));
+
+      const vectorConfig = isAwsOpenSearch
+        ? {
+            // AWS OpenSearch configuration
+            space_type: 'cosinesimilarity',
+            engine: 'faiss',
+          }
+        : {
+            // Local Docker OpenSearch 2.11.0 configuration
+            space_type: 'l2',
+            engine: 'nmslib',
+          };
+
       await this.client.indices.create({
         index: indexName,
         body: {
@@ -252,13 +271,13 @@ export default class OpenSearchModuleService {
               updated_at: { type: 'date' },
 
               // k-NN vector fields for semantic search
+              // Configuration adapts based on OpenSearch environment
               text_embedding: {
                 type: 'knn_vector',
                 dimension: 1024,
                 method: {
                   name: 'hnsw',
-                  space_type: 'cosinesimil',
-                  engine: 'faiss',
+                  ...vectorConfig,
                   parameters: {
                     ef_construction: 128,
                     m: 24,
@@ -270,8 +289,7 @@ export default class OpenSearchModuleService {
                 dimension: 1024,
                 method: {
                   name: 'hnsw',
-                  space_type: 'cosinesimil',
-                  engine: 'faiss',
+                  ...vectorConfig,
                   parameters: {
                     ef_construction: 128,
                     m: 24,

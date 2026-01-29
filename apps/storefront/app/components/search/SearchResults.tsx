@@ -68,26 +68,45 @@ export interface EnhancedSearchResult {
  * Maps OpenSearch indexed fields to the ProductListItem expected format
  */
 function transformResultToProduct(result: SearchResult): EnhancedSearchResult {
+  // Safely extract raw values, handling undefined and complex objects
+  const getRawValue = (field: any): any => {
+    if (!field) return undefined;
+    if (typeof field === 'object' && 'raw' in field) {
+      return field.raw;
+    }
+    return field;
+  };
+
   // Use min_price for display, fallback to price for backward compatibility
-  const price = (result.min_price?.raw as number) || (result.price?.raw as number) || 0;
-  const currencyCode = (result.currency_code?.raw as string) || 'usd';
+  const minPrice = getRawValue(result.min_price);
+  const price = getRawValue(result.price);
+  const priceValue = typeof minPrice === 'number' ? minPrice : typeof price === 'number' ? price : 0;
+
+  const currencyCode = getRawValue(result.currency_code) || 'usd';
 
   // Determine match type from result metadata
-  const matchType = (result.match_type?.raw as MatchType) || 'exact';
-  const similarityScore = result.similarity_score?.raw as number | undefined;
+  const matchType = (getRawValue(result.match_type) as MatchType) || 'exact';
+  const similarityScore =
+    typeof getRawValue(result.similarity_score) === 'number' ? getRawValue(result.similarity_score) : undefined;
+
+  // Safely get string values
+  const id = String(getRawValue(result.id) || '');
+  const title = String(getRawValue(result.title) || 'Untitled');
+  const handle = String(getRawValue(result.handle) || '');
+  const thumbnail = getRawValue(result.thumbnail) || null;
 
   const product = {
-    id: result.id?.raw as string,
-    title: result.title?.raw as string,
-    handle: result.handle?.raw as string,
-    thumbnail: result.thumbnail?.raw as string | null,
+    id,
+    title,
+    handle,
+    thumbnail,
     variants: [
       {
-        id: `${result.id?.raw}-variant`,
+        id: `${id}-variant`,
         calculated_price: {
-          calculated_amount: price,
-          original_amount: price,
-          currency_code: currencyCode,
+          calculated_amount: priceValue,
+          original_amount: priceValue,
+          currency_code: String(currencyCode),
         },
       },
     ],
@@ -125,19 +144,30 @@ const MatchTypeBadge: FC<{ matchType: MatchType; similarityScore?: number }> = (
  * Custom result view that wraps ProductListItem with a link
  */
 const ResultView: FC<{ result: SearchResult }> = ({ result }) => {
-  const { product, matchType, similarityScore } = transformResultToProduct(result);
-  const handle = result.handle?.raw as string;
+  try {
+    const { product, matchType, similarityScore } = transformResultToProduct(result);
+    const handle = product.handle;
 
-  return (
-    <Link
-      to={`/products/${handle}`}
-      className="block relative transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
-      aria-label={`View ${product.title}`}
-    >
-      {matchType !== 'exact' && <MatchTypeBadge matchType={matchType} similarityScore={similarityScore} />}
-      <ProductListItem product={product} />
-    </Link>
-  );
+    // Validate that we have required data
+    if (!handle || !product.id) {
+      console.warn('Invalid product data in search result:', result);
+      return null;
+    }
+
+    return (
+      <Link
+        to={`/products/${handle}`}
+        className="block relative transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
+        aria-label={`View ${product.title}`}
+      >
+        {matchType !== 'exact' && <MatchTypeBadge matchType={matchType} similarityScore={similarityScore} />}
+        <ProductListItem product={product} />
+      </Link>
+    );
+  } catch (error) {
+    console.error('Error rendering search result:', error, result);
+    return null;
+  }
 };
 
 /**
@@ -177,16 +207,21 @@ const CustomResultsView: FC<
  * Custom paging info view showing result count
  */
 const CustomPagingInfoView: FC<ElasticPagingInfoViewProps> = ({ start, end, totalResults, searchTerm }) => {
-  if (totalResults === 0) return null;
+  // Ensure all values are valid numbers
+  const safeStart = typeof start === 'number' && !isNaN(start) ? start : 0;
+  const safeEnd = typeof end === 'number' && !isNaN(end) ? end : 0;
+  const safeTotal = typeof totalResults === 'number' && !isNaN(totalResults) ? totalResults : 0;
+
+  if (safeTotal === 0) return null;
 
   return (
     <p className="text-sm text-gray-600">
-      Showing <span className="font-medium">{start}</span> - <span className="font-medium">{end}</span> of{' '}
-      <span className="font-medium">{totalResults}</span> results
+      Showing <span className="font-medium">{safeStart}</span> - <span className="font-medium">{safeEnd}</span> of{' '}
+      <span className="font-medium">{safeTotal}</span> results
       {searchTerm && (
         <>
           {' '}
-          for "<span className="font-medium">{searchTerm}</span>"
+          for "<span className="font-medium">{String(searchTerm)}</span>"
         </>
       )}
     </p>
@@ -382,6 +417,8 @@ const ImageSearchIndicator: FC<{ previewUrl: string; onClear: () => void }> = ({
  * Empty state when no results are found
  */
 const EmptyState: FC<{ searchTerm?: string }> = ({ searchTerm }) => {
+  const safeSearchTerm = searchTerm ? String(searchTerm) : '';
+
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <svg
@@ -400,10 +437,10 @@ const EmptyState: FC<{ searchTerm?: string }> = ({ searchTerm }) => {
       </svg>
       <h3 className="mb-2 text-lg font-semibold text-gray-900">No products found</h3>
       <p className="max-w-md text-gray-600">
-        {searchTerm ? (
+        {safeSearchTerm ? (
           <>
-            We couldn't find any products matching "<span className="font-medium">{searchTerm}</span>". Try adjusting
-            your search or filters.
+            We couldn't find any products matching "<span className="font-medium">{safeSearchTerm}</span>". Try
+            adjusting your search or filters.
           </>
         ) : (
           <>Try adjusting your filters or browse our categories to find what you're looking for.</>
@@ -436,6 +473,9 @@ const SearchResultsComponent: FC<SearchResultsWithSearchProps> = ({
 }) => {
   const { imageSearch, clearImageSearch } = useImageSearchState();
 
+  // Validate totalResults to prevent NaN issues
+  const safeTotalResults = typeof totalResults === 'number' && !isNaN(totalResults) ? totalResults : 0;
+
   // Show loading state
   if (isLoading) {
     return (
@@ -450,7 +490,7 @@ const SearchResultsComponent: FC<SearchResultsWithSearchProps> = ({
   }
 
   // Show empty state
-  if (totalResults === 0) {
+  if (safeTotalResults === 0) {
     return (
       <div className={className}>
         {imageSearch.isActive && imageSearch.previewUrl && (

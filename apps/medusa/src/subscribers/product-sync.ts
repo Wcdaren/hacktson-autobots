@@ -36,11 +36,23 @@ export default async function handleProductEvents({
   event: { data },
   container,
 }: SubscriberArgs<ProductEventData>): Promise<void> {
-  await syncProductsWorkflow(container).run({
-    input: {
-      filters: { id: data.id },
-    },
-  });
+  const logger = container.resolve('logger');
+
+  try {
+    await syncProductsWorkflow(container).run({
+      input: {
+        filters: { id: data.id },
+      },
+    });
+    logger.info(`Successfully synced product ${data.id} to OpenSearch`);
+  } catch (error) {
+    logger.error(`Failed to sync product ${data.id} to OpenSearch:`, {
+      error: error.message,
+      stack: error.stack,
+      productId: data.id,
+    });
+    // Don't throw - let the subscriber complete gracefully
+  }
 }
 
 /**
@@ -48,7 +60,11 @@ export default async function handleProductEvents({
  *
  * Subscribes to both product.created and product.updated events
  * to ensure the OpenSearch index is updated whenever products change.
+ *
+ * Note: This subscriber is disabled by default. To enable it, set
+ * ENABLE_OPENSEARCH_SYNC=true in your .env file and ensure OpenSearch
+ * is properly configured and accessible.
  */
 export const config: SubscriberConfig = {
-  event: ['product.created', 'product.updated'],
+  event: process.env.ENABLE_OPENSEARCH_SYNC === 'true' ? ['product.created', 'product.updated'] : [],
 };
