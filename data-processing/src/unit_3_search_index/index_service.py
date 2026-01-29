@@ -35,12 +35,16 @@ class SearchIndexService:
             )
         else:
             # Use basic authentication
+            import os
+            username = os.getenv('OPENSEARCH_USERNAME') or self.opensearch_config.get('username')
+            password = os.getenv('OPENSEARCH_PASSWORD') or self.opensearch_config.get('password')
+            
+            if not username or not password:
+                raise ValueError("OpenSearch credentials not found in environment or config")
+            
             self.client = OpenSearch(
                 hosts=[self.opensearch_config['endpoint']],
-                http_auth=(
-                    self.opensearch_config['username'],
-                    self.opensearch_config['password']
-                ),
+                http_auth=(username, password),
                 use_ssl=True,
                 verify_certs=True
             )
@@ -75,13 +79,20 @@ class SearchIndexService:
                     "description": {"type": "text"},
                     "aggregated_text": {"type": "text"},
                     "price": {"type": "float"},
-                    "original_price": {"type": "float"},
                     "currency": {"type": "keyword"},
+                    "product_type": {"type": "keyword"},
                     "frontend_category": {"type": "keyword"},
+                    "frontend_subcategory": {"type": "keyword"},
                     "backend_category": {"type": "keyword"},
                     "review_count": {"type": "integer"},
                     "review_rating": {"type": "float"},
+                    "collection": {"type": "keyword"},
+                    "color_tone": {"type": "keyword"},
+                    "material": {"type": "keyword"},
+                    "other_properties": {"type": "text"},
+                    "variant_url": {"type": "keyword"},
                     "stock_status": {"type": "keyword"},
+                    "lifecycle_status": {"type": "keyword"},
                     "text_embedding": {
                         "type": "knn_vector",
                         "dimension": self.config['aws']['bedrock']['text_embedding_dimension'],
@@ -131,6 +142,7 @@ class SearchIndexService:
             "mappings": {
                 "properties": {
                     "variant_id": {"type": "keyword"},
+                    "filename": {"type": "keyword"},
                     "image_url": {"type": "keyword"},
                     "image_type": {"type": "keyword"},
                     "image_position": {"type": "integer"},
@@ -216,11 +228,12 @@ class SearchIndexService:
             # Prepare bulk request
             bulk_body = []
             for doc in batch:
-                # Index action
+                # Index action - use image_id if available, otherwise construct from variant_id and position
+                doc_id = doc.get('image_id', f"{doc['variant_id']}_{doc['image_position']}")
                 bulk_body.append({
                     "index": {
                         "_index": self.image_index,
-                        "_id": f"{doc['variant_id']}_{doc['image_position']}"
+                        "_id": doc_id
                     }
                 })
                 # Document

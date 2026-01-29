@@ -1,73 +1,91 @@
 ---
 inclusion: always
 ---
----
-inclusion: always
----
 
-# Project-Specific Configuration
+# Project-Specific Rules
 
-## Environment Setup
+## Environment Configuration
 
-### Python Virtual Environment
-- **Location**: `/Users/pillalamarrimallikarjun/Documents/python-envs/semantic-search`
-- Always activate this venv before running Python commands
-- Use `source /Users/pillalamarrimallikarjun/Documents/python-envs/semantic-search/bin/activate`
+### Python Environment
+- Virtual environment: `/Users/pillalamarrimallikarjun/Documents/python-envs/semantic-search`
+- Always activate before running Python: `source /Users/pillalamarrimallikarjun/Documents/python-envs/semantic-search/bin/activate`
 
-### AWS Region Configuration
-- **Bedrock services**: `us-east-1` (Titan embeddings, Claude LLM)
-- **All other AWS services**: `ap-southeast-1` (OpenSearch, S3, RDS)
-- Ensure region-specific endpoints are used in boto3 clients
+### AWS Multi-Region Setup
+- **Bedrock** (embeddings, LLM): `us-east-1`
+- **All other services** (OpenSearch, S3, RDS): `ap-southeast-1`
+- Ensure correct region in boto3 client initialization
 
 ### Network Access
-- **OpenSearch and RDS**: Accessible only via SSH jumphost
-- **Jumphost**: `jumphost-sg.castlery.com`
-- **SSH credentials**: Located at `/Users/pillalamarrimallikarjun/OneDrive - Castlery Pte Ltd/workspace/Fun projects/autobots-semantic-search`
-- **Username**: `autobots`
+- OpenSearch/RDS require SSH tunnel via `jumphost-sg.castlery.com` (username: `autobots`)
+- SSH credentials: `/Users/pillalamarrimallikarjun/OneDrive - Castlery Pte Ltd/workspace/Fun projects/autobots-semantic-search`
 
-## Documentation Management
+## Data Ingestion Architecture
 
-### Existing Documentation Files
-Before creating new documentation, check and update these files first:
-- `README.md` - Quick start and overview
-- `docs/DEPLOYMENT_GUIDE.md` - Deployment instructions
-- `docs/PROJECT_DOCUMENTATION.md` - Technical documentation
-- `docs/plan.md` - Project roadmap and status
-- `docs/starter_prompt.md` - Initial project context
+### Current Implementation (MVP)
+- **Single-file ingestion**: Uses only `variant.csv` from S3
+- **Simplified structure**: No multi-file enrichment, no empty arrays/dicts
+- **Method**: `DataIngestionService.ingest_data_simple()`
+- **Pipeline**: Always runs in simple mode (multi-file code commented out)
 
-### Documentation Rules
-- Only create new `.md` files if content doesn't fit existing documentation
-- Keep documentation consolidated to avoid fragmentation
-- Clean up redundant or outdated files after creating new ones
+### Data Structure
+Product documents contain only fields present in `variant.csv`:
+- Core: `variant_id`, `product_id`
+- Content: `variant_name`, `product_name`, `description`, `aggregated_text`
+- Pricing: `price`, `currency`
+- Categories: `product_type`, `frontend_category`, `frontend_subcategory`, `backend_category`
+- Reviews: `review_count`, `review_rating`
+- Additional: `collection`, `color_tone`, `material`, `other_properties`, `variant_url`
+- Status: `stock_status`, `lifecycle_status`
 
-## Change Management Workflow
+### Legacy Code
+Multi-file enrichment methods (`load_all_data()`, `enrich_variant_data()`, `ingest_data()`) are commented out but preserved for potential future use.
 
-### Before Making Code Changes
-1. **Review design documents** in this order:
-   - `docs/starter_prompt.md` - Project vision and context
-   - `docs/plan.md` - Current roadmap and priorities
-   - `docs/construction/search_query_service/domain_model.md` - Domain model
-   - `docs/construction/search_query_service/logical_design.md` - Architecture design
-   - Relevant steering documents in `.kiro/steering/`
+## Documentation Workflow
 
-2. **Propose documentation updates** if changes affect:
-   - System architecture or design patterns
-   - API contracts or interfaces
-   - Configuration or deployment procedures
-   - Feature specifications
+### Consolidation Rule
+Update existing documentation before creating new files:
+- `README.md` - Quick start
+- `docs/PROJECT_DOCUMENTATION.md` - Technical details
+- `docs/DEPLOYMENT_GUIDE.md` - Deployment steps
+- `docs/plan.md` - Roadmap and status
+- `docs/starter_prompt.md` - Project context
 
-3. **Get user approval** for documentation changes before modifying source code or tests
+Only create new `.md` files when content doesn't fit existing structure.
 
-### Implementation Order
-1. Update design/planning documents (if needed)
-2. Get user review and approval
-3. Implement code changes
-4. Update or create tests
-5. Update operational documentation (README, deployment guides)
+### Change Management
+Before implementing code changes:
+1. Review design docs: `docs/starter_prompt.md`, `docs/plan.md`, `docs/construction/search_query_service/`
+2. Propose documentation updates if changes affect architecture, APIs, or configuration
+3. Get user approval before modifying code
 
-## Code Quality
+Implementation sequence: Design docs → User approval → Code → Tests → Operational docs
 
-### File Management
+## Code Quality Rules
+
+### Test File Management
+- Do NOT create new test files without explicit permission
+- If permission denied, update existing test files instead
+- Existing test locations: `src/tests/` and `src/tests/unit/`
+
+### File Hygiene
 - Remove temporary, duplicate, or obsolete files after refactoring
-- Keep the workspace clean and organized
-- Follow the project structure defined in `structure.md` steering document 
+- Follow project structure in `structure.md` steering document
+- Keep workspace organized per defined conventions
+- Comment out (don't delete) code that may be needed later
+
+### Code Style
+- Follow existing code patterns and naming conventions
+- Maintain consistent formatting and documentation style
+- Ensure all new code includes appropriate docstrings and comments
+- Adhere to the project's established architectural principles
+
+### Security
+- Never hardcode secrets or credentials in source files
+- Use environment variables or AWS Secrets Manager for sensitive data
+- Follow AWS security best practices for all services
+
+### Performance
+- Optimize database queries and API calls
+- Implement proper caching strategies where applicable
+- Monitor resource usage and scale appropriately
+- Consider latency implications of architectural decisions

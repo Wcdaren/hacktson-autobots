@@ -47,9 +47,17 @@ class SearchQueryService:
                 connection_class=RequestsHttpConnection
             )
         else:
+            # Load credentials from environment variables or config
+            import os
+            username = os.getenv('OPENSEARCH_USERNAME') or opensearch_config.get('username')
+            password = os.getenv('OPENSEARCH_PASSWORD') or opensearch_config.get('password')
+            
+            if not username or not password:
+                raise ValueError("OpenSearch username/password not found in environment or config")
+            
             self.opensearch_client = OpenSearch(
                 hosts=[opensearch_config['endpoint']],
-                http_auth=(opensearch_config['username'], opensearch_config['password']),
+                http_auth=(username, password),
                 use_ssl=True,
                 verify_certs=True
             )

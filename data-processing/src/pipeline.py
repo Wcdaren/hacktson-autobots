@@ -56,18 +56,23 @@ def load_config(config_path: str = 'config.yaml'):
     return config
 
 
-def run_pipeline(config_path: str = 'config.yaml'):
+def run_pipeline(config_path: str = 'config.yaml', simple_mode: bool = False):
     """
     Run the complete data pipeline:
     1. Ingest data from S3
     2. Generate embeddings
     3. Create OpenSearch indices
     4. Index data
+    
+    Args:
+        config_path: Path to config file
+        simple_mode: If True, use simplified single-file ingestion (MVP)
     """
     start_time = time.time()
     
     logger.info("=" * 80)
     logger.info("SEMANTIC SEARCH PIPELINE - STARTING")
+    logger.info(f"Mode: {'SIMPLE (MVP)' if simple_mode else 'FULL'}")
     logger.info("=" * 80)
     
     # Load configuration
@@ -80,7 +85,13 @@ def run_pipeline(config_path: str = 'config.yaml'):
     logger.info("=" * 80)
     
     ingestion_service = DataIngestionService(config)
-    products = ingestion_service.ingest_data()
+    
+    if simple_mode:
+        logger.info("Using simplified single-file ingestion...")
+        products = ingestion_service.ingest_data_simple()
+    else:
+        logger.info("Using full multi-file ingestion with enrichment...")
+        products = ingestion_service.ingest_data()
     
     logger.info(f"✓ Ingested {len(products)} products")
     
@@ -150,11 +161,16 @@ def main():
         default='config.yaml',
         help='Path to configuration file (default: config.yaml)'
     )
+    parser.add_argument(
+        '--simple',
+        action='store_true',
+        help='Use simplified single-file ingestion (MVP mode, faster)'
+    )
     
     args = parser.parse_args()
     
     try:
-        run_pipeline(args.config)
+        run_pipeline(args.config, simple_mode=args.simple)
     except Exception as e:
         logger.error(f"Pipeline failed: {str(e)}", exc_info=True)
         sys.exit(1)

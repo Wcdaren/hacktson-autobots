@@ -50,6 +50,7 @@ class DataIngestionService:
         
         logger.info(f"Loaded {len(dataframes)} data files")
         return dataframes
+
     
     def enrich_variant_data(self, dataframes: Dict[str, pd.DataFrame]) -> List[Dict]:
         """
@@ -185,6 +186,7 @@ class DataIngestionService:
         
         logger.info(f"Data ingestion complete: {len(enriched_products)} products ready")
         return enriched_products
+
 
 
 def main():

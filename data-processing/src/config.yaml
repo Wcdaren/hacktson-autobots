@@ -417,7 +417,7 @@ aws:
     endpoint: https://your-domain.us-east-1.es.amazonaws.com  # Replace with your OpenSearch endpoint
     # Credentials moved to .env file for security
     # username and password are loaded from environment variables
-    use_iam_auth: true  # Set to false if using username/password auth
+    use_iam_auth: false  # Set to false if using username/password auth
     indices:
       text_index: product-text-embeddings
       image_index: product-image-embeddings
