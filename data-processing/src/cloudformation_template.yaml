@@ -1,0 +1,220 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Semantic Search System - Serverless Deployment'
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: S3 bucket containing product data
+    
+  OpenSearchEndpoint:
+    Type: String
+    Description: OpenSearch domain endpoint (without https://)
+    
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment name
+
+Resources:
+  # IAM Role for Lambda
+  SearchLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'semantic-search-lambda-role-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: BedrockAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                Resource: '*'
+        - PolicyName: OpenSearchAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - es:ESHttpGet
+                  - es:ESHttpPost
+                  - es:ESHttpPut
+                Resource: !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/*'
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3BucketName}'
+                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+
+  # Lambda Function for Text Search
+  TextSearchFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'semantic-search-text-${Environment}'
+      Runtime: python3.11
+      Handler: lambda_handler.lambda_handler
+      Role: !GetAtt SearchLambdaRole.Arn
+      Timeout: 30
+      MemorySize: 1024
+      Environment:
+        Variables:
+          OPENSEARCH_ENDPOINT: !Ref OpenSearchEndpoint
+          S3_BUCKET: !Ref S3BucketName
+          ENVIRONMENT: !Ref Environment
+          SEARCH_MODE: hybrid
+          MAX_RESULTS: '50'
+      Code:
+        ZipFile: |
+          # Placeholder - deploy actual code using deployment script
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Deploy code using deployment script'}
+
+  # Lambda Function for Image Search
+  ImageSearchFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'semantic-search-image-${Environment}'
+      Runtime: python3.11
+      Handler: lambda_handler.lambda_handler
+      Role: !GetAtt SearchLambdaRole.Arn
+      Timeout: 30
+      MemorySize: 1024
+      Environment:
+        Variables:
+          OPENSEARCH_ENDPOINT: !Ref OpenSearchEndpoint
+          S3_BUCKET: !Ref S3BucketName
+          ENVIRONMENT: !Ref Environment
+      Code:
+        ZipFile: |
+          # Placeholder - deploy actual code using deployment script
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Deploy code using deployment script'}
+
+  # API Gateway REST API
+  SearchAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub 'semantic-search-api-${Environment}'
+      Description: Semantic Search API
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  # API Gateway Resource: /search
+  SearchResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref SearchAPI
+      ParentId: !GetAtt SearchAPI.RootResourceId
+      PathPart: search
+
+  # API Gateway Resource: /search/text
+  TextSearchResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref SearchAPI
+      ParentId: !Ref SearchResource
+      PathPart: text
+
+  # API Gateway Method: POST /search/text
+  TextSearchMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref SearchAPI
+      ResourceId: !Ref TextSearchResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TextSearchFunction.Arn}/invocations'
+
+  # API Gateway Resource: /search/image
+  ImageSearchResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref SearchAPI
+      ParentId: !Ref SearchResource
+      PathPart: image
+
+  # API Gateway Method: POST /search/image
+  ImageSearchMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref SearchAPI
+      ResourceId: !Ref ImageSearchResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ImageSearchFunction.Arn}/invocations'
+
+  # Lambda Permissions for API Gateway
+  TextSearchLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref TextSearchFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SearchAPI}/*/*'
+
+  ImageSearchLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ImageSearchFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SearchAPI}/*/*'
+
+  # API Gateway Deployment
+  APIDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - TextSearchMethod
+      - ImageSearchMethod
+    Properties:
+      RestApiId: !Ref SearchAPI
+      StageName: !Ref Environment
+
+Outputs:
+  APIEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${SearchAPI}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+    Export:
+      Name: !Sub '${AWS::StackName}-APIEndpoint'
+  
+  TextSearchURL:
+    Description: Text search endpoint
+    Value: !Sub 'https://${SearchAPI}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/search/text'
+  
+  ImageSearchURL:
+    Description: Image search endpoint
+    Value: !Sub 'https://${SearchAPI}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/search/image'
+  
+  TextSearchFunctionArn:
+    Description: Text search Lambda function ARN
+    Value: !GetAtt TextSearchFunction.Arn
+  
+  ImageSearchFunctionArn:
+    Description: Image search Lambda function ARN
+    Value: !GetAtt ImageSearchFunction.Arn
